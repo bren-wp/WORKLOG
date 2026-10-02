@@ -43,7 +43,26 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final active = state.jobs.where((job) => job.status != JobStatus.completed).toList();
+    final now = DateTime.now();
+    final active = state.jobs.where((job) => !job.status.isClosed).toList();
+    final todayJobs = state.jobs.where((job) {
+      final start = job.scheduledStart;
+      return start != null &&
+          start.year == now.year &&
+          start.month == now.month &&
+          start.day == now.day;
+    }).toList();
+    final todaySeconds = todayJobs.fold<int>(
+      0,
+      (sum, job) => sum + job.workedSeconds(now: now),
+    );
+    final todayMinutes = (todaySeconds + 59) ~/ 60;
+    final reports = state.jobs.where((job) {
+      final path = job.reportPath;
+      return path != null && path.isNotEmpty;
+    }).length;
+    final todayWorked =
+        '${todayMinutes ~/ 60}:${(todayMinutes % 60).toString().padLeft(2, '0')}';
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
@@ -61,7 +80,7 @@ class DashboardScreen extends StatelessWidget {
         const Text("Dobar dan!", style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
         const Text("Vrijeme je za nove poslove.", style: TextStyle(color: WorklogColors.muted)),
         const SizedBox(height: 18),
-        const _DateBanner(),
+        _DateBanner(date: now),
         const SizedBox(height: 12),
         GridView.count(
           crossAxisCount: 2,
@@ -73,8 +92,18 @@ class DashboardScreen extends StatelessWidget {
           children: [
             _Metric(icon: Icons.work_rounded, value: active.length.toString(), label: "AKTIVNI POSLOVI", color: WorklogColors.primary),
             _Metric(icon: Icons.people_alt_rounded, value: state.clients.length.toString(), label: "AKTIVNI KLIJENTI", color: WorklogColors.success),
-            const _Metric(icon: Icons.schedule_rounded, value: "4:30", label: "DANAŠNJI SATI", color: WorklogColors.cyan),
-            const _Metric(icon: Icons.description_rounded, value: "2", label: "ZAPISNIKA", color: WorklogColors.violet),
+            _Metric(
+              icon: Icons.schedule_rounded,
+              value: todayWorked,
+              label: 'DANAŠNJI SATI',
+              color: WorklogColors.cyan,
+            ),
+            _Metric(
+              icon: Icons.description_rounded,
+              value: reports.toString(),
+              label: 'ZAPISNICI',
+              color: WorklogColors.violet,
+            ),
           ],
         ),
         const SizedBox(height: 14),
@@ -102,7 +131,9 @@ class DashboardScreen extends StatelessWidget {
 }
 
 class _DateBanner extends StatelessWidget {
-  const _DateBanner();
+  const _DateBanner({required this.date});
+
+  final DateTime date;
 
   @override
   Widget build(BuildContext context) {
@@ -121,11 +152,20 @@ class _DateBanner extends StatelessWidget {
               child: const Icon(Icons.calendar_today_rounded, color: WorklogColors.primary),
             ),
             const SizedBox(width: 14),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Danas", style: TextStyle(color: WorklogColors.muted)),
-                Text("2. listopada 2026.", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const Text(
+                  'Danas',
+                  style: TextStyle(color: WorklogColors.muted),
+                ),
+                Text(
+                  formatCroatianDate(date),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
               ],
             ),
           ],
@@ -175,8 +215,12 @@ class JobCard extends StatelessWidget {
 
   Color get statusColor => switch (job.status) {
         JobStatus.planned => WorklogColors.primary,
+        JobStatus.confirmed => WorklogColors.cyan,
+        JobStatus.enRoute => WorklogColors.violet,
         JobStatus.active => WorklogColors.success,
+        JobStatus.paused => WorklogColors.muted,
         JobStatus.completed => WorklogColors.success,
+        JobStatus.cancelled => WorklogColors.danger,
       };
 
   @override
@@ -247,9 +291,17 @@ class _JobsScreenState extends State<JobsScreen> {
   @override
   Widget build(BuildContext context) {
     final jobs = widget.state.jobs.where((job) {
-      if (filter == "Planirano") return job.status == JobStatus.planned;
-      if (filter == "U tijeku") return job.status == JobStatus.active;
-      if (filter == "Završeno") return job.status == JobStatus.completed;
+      if (filter == 'Planirano') {
+        return job.status == JobStatus.planned ||
+            job.status == JobStatus.confirmed ||
+            job.status == JobStatus.enRoute;
+      }
+      if (filter == 'U tijeku') {
+        return job.status == JobStatus.active ||
+            job.status == JobStatus.paused;
+      }
+      if (filter == 'Završeno') return job.status == JobStatus.completed;
+      if (filter == 'Otkazano') return job.status == JobStatus.cancelled;
       return true;
     }).toList()
       ..sort((a, b) {
@@ -277,7 +329,7 @@ class _JobsScreenState extends State<JobsScreen> {
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
-          children: ["Svi", "Planirano", "U tijeku", "Završeno"]
+          children: ['Svi', 'Planirano', 'U tijeku', 'Završeno', 'Otkazano']
               .map((label) => ChoiceChip(label: Text(label), selected: filter == label, onSelected: (_) => setState(() => filter = label)))
               .toList(),
         ),
