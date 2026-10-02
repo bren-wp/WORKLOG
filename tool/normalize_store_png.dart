@@ -38,7 +38,7 @@ Future<void> main(List<String> args) async {
         return;
       }
 
-      final rgb = img.Image.from(decoded, numChannels: 3);
+      final rgb = decoded.convert(numChannels: 3);
       final encoded = img.encodePng(rgb, level: 6);
       await file.writeAsBytes(encoded, flush: true);
       stdout.writeln(
