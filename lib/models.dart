@@ -459,6 +459,32 @@ class WorkTimeEntry {
   }
 }
 
+class ChecklistItem {
+  ChecklistItem({
+    String? id,
+    required this.label,
+    this.completed = false,
+  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
+
+  final String id;
+  String label;
+  bool completed;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'label': label,
+        'completed': completed,
+      };
+
+  factory ChecklistItem.fromJson(Map<String, dynamic> json) {
+    return ChecklistItem(
+      id: json['id'] as String?,
+      label: json['label'] as String? ?? '',
+      completed: json['completed'] as bool? ?? false,
+    );
+  }
+}
+
 class WorkJob {
   WorkJob({
     String? id,
@@ -476,6 +502,7 @@ class WorkJob {
     this.manualAdjustmentReason = '',
     List<MaterialItem>? materials,
     List<String>? notes,
+    List<ChecklistItem>? checklist,
     List<String>? beforePhotoPaths,
     List<String>? afterPhotoPaths,
     this.signaturePath,
@@ -497,6 +524,7 @@ class WorkJob {
        timeEntries = timeEntries ?? <WorkTimeEntry>[],
        materials = materials ?? <MaterialItem>[],
        notes = notes ?? <String>[],
+       checklist = checklist ?? <ChecklistItem>[],
        beforePhotoPaths = beforePhotoPaths ?? <String>[],
        afterPhotoPaths = afterPhotoPaths ?? <String>[];
 
@@ -515,6 +543,7 @@ class WorkJob {
   String manualAdjustmentReason;
   final List<MaterialItem> materials;
   final List<String> notes;
+  final List<ChecklistItem> checklist;
   final List<String> beforePhotoPaths;
   final List<String> afterPhotoPaths;
   String? signaturePath;
@@ -593,6 +622,7 @@ class WorkJob {
     'manualAdjustmentReason': manualAdjustmentReason,
     'materials': materials.map((item) => item.toJson()).toList(),
     'notes': notes,
+    'checklist': checklist.map((item) => item.toJson()).toList(),
     'beforePhotoPaths': beforePhotoPaths,
     'afterPhotoPaths': afterPhotoPaths,
     'signaturePath': signaturePath,
@@ -651,6 +681,11 @@ class WorkJob {
           .map((item) => MaterialItem.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
       notes: (json['notes'] as List? ?? const []).whereType<String>().toList(),
+      checklist: (json['checklist'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => ChecklistItem.fromJson(Map<String, dynamic>.from(item)))
+          .where((item) => item.label.trim().isNotEmpty)
+          .toList(),
       beforePhotoPaths: (json['beforePhotoPaths'] as List? ?? const [])
           .whereType<String>()
           .toList(),
