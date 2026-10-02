@@ -946,8 +946,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           ),
           Card(
             child: ListTile(
-              onTap: () {
-                widget.state.logout();
+              onTap: () async {
+                await widget.state.logout();
+                if (!context.mounted) return;
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
               leading: const Icon(Icons.logout_rounded),
