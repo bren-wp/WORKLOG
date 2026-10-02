@@ -1,1 +1,75 @@
 # WORKLOG
+
+**WORKLOG** je Android i iOS aplikacija za organizaciju terenskog rada: poslovi, klijenti, raspored, evidencija vremena, materijal, fotografije prije/poslije, potpis klijenta i završni zapisnici.
+
+> Dokaz obavljenog posla, bez kaosa.
+
+## Status
+
+Aktivni razvoj: **0.1.0**. Projekt je izgrađen u Flutteru s jednim kodom za Android i iOS. Cijelo korisničko sučelje je na hrvatskom i vizualno prati odobreni WORKLOG branding.
+
+## Pokretanje
+
+```bash
+git clone https://github.com/bren-wp/WORKLOG.git
+cd WORKLOG
+./tool/bootstrap.sh
+flutter run
+```
+
+Ako ste na Windowsu, pokrenite ekvivalent:
+
+```powershell
+flutter create --org com.brendigo --project-name worklog --platforms android,ios .
+flutter pub get
+flutter run
+```
+
+## Implementirani moduli
+
+- onboarding i prijava
+- postavljanje profila tvrtke
+- Početna
+- Poslovi i statusi
+- Kalendar
+- Klijenti
+- Poruke
+- Obavijesti
+- Novi posao
+- Detalj posla
+- Evidencija vremena
+- Materijal i troškovi
+- Bilješke i kontrolna lista
+- Fotografije prije/poslije
+- potpis klijenta
+- pregled zapisnika
+- završetak posla
+- slanje izvještaja
+- Izvještaji
+
+Detalji proizvoda: [docs/PRODUCT.md](docs/PRODUCT.md)  
+Vizualni identitet: [docs/BRAND.md](docs/BRAND.md)
+
+## Provjera kvalitete
+
+GitHub Actions na svakoj promjeni izvršava:
+
+- `flutter analyze`
+- `flutter test`
+- Android release APK build
+- iOS release build bez potpisivanja
+
+## Branding
+
+Glavne boje:
+
+- `#06111F` pozadina
+- `#0B1E3A` površine
+- `#3B82F6` primarna plava
+- `#10B981` potvrda / završeno
+
+Izvorni vektorski znak nalazi se u `assets/brand/worklog-mark.svg`.
+
+## Licenca
+
+MIT — vidi [LICENSE](LICENSE).
