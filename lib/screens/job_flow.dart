@@ -327,7 +327,10 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
     selectedClient = job.client;
     priority = job.priority;
     status = job.status;
-    assignedMemberId = job.assignedMemberId ?? "";
+    assignedMemberId =
+        widget.state.teamMemberById(job.assignedMemberId) == null
+            ? ""
+            : job.assignedMemberId ?? "";
     selectedDate = DateTime(start.year, start.month, start.day);
     startTime = TimeOfDay.fromDateTime(start);
     endTime = TimeOfDay.fromDateTime(end);
