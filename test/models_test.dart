@@ -19,6 +19,15 @@ void main() {
       scheduledEnd: DateTime(2026, 10, 2, 10, 30),
       status: JobStatus.completed,
       minutesWorked: 95,
+      timeEntries: [
+        WorkTimeEntry(
+          id: 'interval-1',
+          startedAt: DateTime(2026, 10, 2, 11),
+          endedAt: DateTime(2026, 10, 2, 11, 30),
+        ),
+      ],
+      manualAdjustmentMinutes: -5,
+      manualAdjustmentReason: 'Ispravak pauze',
       materials: const [
         MaterialItem(name: 'Filter', quantity: '1 kom', price: 18),
       ],
@@ -38,6 +47,10 @@ void main() {
     expect(restored.title, original.title);
     expect(restored.status, JobStatus.completed);
     expect(restored.minutesWorked, 95);
+    expect(restored.timeEntries.single.id, 'interval-1');
+    expect(restored.manualAdjustmentMinutes, -5);
+    expect(restored.manualAdjustmentReason, 'Ispravak pauze');
+    expect(restored.totalWorkedMinutes, 120);
     expect(restored.materials.single.name, 'Filter');
     expect(restored.notes.single, 'Provjeren tlak.');
     expect(restored.beforePhotoPaths.single, '/tmp/prije.jpg');
@@ -54,7 +67,37 @@ void main() {
     expect(restored.timeLabel, '08:00 – 10:30');
   });
 
-  test('stari tekstualni termin migrira se u stvarni DateTime raspored', () {
+  test('aktivni vremenski interval preživi serijalizaciju i restart', () {
+    final client = Client(
+      name: 'Klijent',
+      type: 'Tvrtka',
+      phone: '',
+      email: '',
+      address: 'Rijeka',
+    );
+    final job = WorkJob(
+      title: 'Aktivni posao',
+      client: client,
+      location: 'Rijeka',
+      status: JobStatus.active,
+      timeEntries: [
+        WorkTimeEntry(
+          id: 'running-1',
+          startedAt: DateTime(2026, 10, 2, 8),
+        ),
+      ],
+    );
+
+    final restored = WorkJob.fromJson(job.toJson());
+
+    expect(restored.timerRunning, isTrue);
+    expect(
+      restored.workedSeconds(now: DateTime(2026, 10, 2, 8, 2, 30)),
+      150,
+    );
+  });
+
+  test('stari zapis bez intervala ostaje kompatibilan', () {
     final restored = WorkJob.fromJson({
       'id': 'legacy-job',
       'title': 'Stari posao',
@@ -69,10 +112,26 @@ void main() {
       'dateLabel': '12. ožujka 2026.',
       'timeLabel': '08:15 – 09:45',
       'status': 'planned',
+      'minutesWorked': 42,
     });
 
     expect(restored.scheduledStart, DateTime(2026, 3, 12, 8, 15));
     expect(restored.scheduledEnd, DateTime(2026, 3, 12, 9, 45));
+    expect(restored.timeEntries, isEmpty);
+    expect(restored.totalWorkedMinutes, 42);
+  });
+
+  test('statusni lifecycle ima hrvatske oznake i zatvorena stanja', () {
+    expect(JobStatus.planned.label, 'Planirano');
+    expect(JobStatus.confirmed.label, 'Potvrđeno');
+    expect(JobStatus.enRoute.label, 'Na putu');
+    expect(JobStatus.active.label, 'U tijeku');
+    expect(JobStatus.paused.label, 'Pauzirano');
+    expect(JobStatus.completed.label, 'Završeno');
+    expect(JobStatus.cancelled.label, 'Otkazano');
+    expect(JobStatus.completed.isClosed, isTrue);
+    expect(JobStatus.cancelled.isClosed, isTrue);
+    expect(JobStatus.active.isClosed, isFalse);
   });
 
   test('setSchedule usklađuje DateTime i hrvatske oznake termina', () {
