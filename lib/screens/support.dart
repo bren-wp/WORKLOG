@@ -4,17 +4,100 @@ import '../brand.dart';
 import '../models.dart';
 import '../worklog_theme.dart';
 import 'job_flow.dart';
+import 'management.dart';
 
-class ClientDetailScreen extends StatelessWidget {
-  const ClientDetailScreen({super.key, required this.state, required this.client});
+class ClientDetailScreen extends StatefulWidget {
+  const ClientDetailScreen({
+    super.key,
+    required this.state,
+    required this.client,
+  });
+
   final AppState state;
   final Client client;
 
   @override
+  State<ClientDetailScreen> createState() => _ClientDetailScreenState();
+}
+
+class _ClientDetailScreenState extends State<ClientDetailScreen> {
+  Client get client => widget.state.clients.firstWhere(
+        (item) => item.id == widget.client.id,
+        orElse: () => widget.client,
+      );
+
+  Future<void> editClient() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ClientEditorScreen(
+          state: widget.state,
+          client: client,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> removeClient() async {
+    final current = client;
+    final jobs = widget.state.jobs
+        .where((job) => job.client.id == current.id)
+        .length;
+    if (jobs > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Klijenta nije moguće izbrisati jer je povezan s $jobs posla.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Izbrisati klijenta?'),
+        content: Text(
+          'Klijent ${current.name} bit će uklonjen s ovog uređaja.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Odustani'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Izbriši'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    if (widget.state.removeClient(current.id)) {
+      Navigator.pop(context);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final jobs = state.jobs.where((job) => job.client.name == client.name).toList();
+    final current = client;
+    final jobs = widget.state.jobs
+        .where((job) => job.client.id == current.id)
+        .toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Detalj klijenta")),
+      appBar: AppBar(
+        title: const Text("Detalj klijenta"),
+        actions: [
+          IconButton(
+            onPressed: editClient,
+            tooltip: 'Uredi klijenta',
+            icon: const Icon(Icons.edit_outlined),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
@@ -23,15 +106,30 @@ class ClientDetailScreen extends StatelessWidget {
               CircleAvatar(
                 radius: 30,
                 backgroundColor: WorklogColors.primary,
-                child: Text(client.name.substring(0, 1), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                child: Text(
+                  current.name.isEmpty ? '?' : current.name.substring(0, 1),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(client.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                    Text(client.type, style: const TextStyle(color: WorklogColors.muted)),
+                    Text(
+                      current.name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      current.type,
+                      style: const TextStyle(color: WorklogColors.muted),
+                    ),
                   ],
                 ),
               ),
@@ -39,17 +137,47 @@ class ClientDetailScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          InfoTile(icon: Icons.phone_outlined, title: client.phone, subtitle: "Telefon"),
-          InfoTile(icon: Icons.mail_outline_rounded, title: client.email, subtitle: "E-pošta"),
-          InfoTile(icon: Icons.location_on_outlined, title: client.address, subtitle: "Adresa"),
+          InfoTile(
+            icon: Icons.phone_outlined,
+            title: current.phone.isEmpty ? 'Nije uneseno' : current.phone,
+            subtitle: "Telefon",
+          ),
+          InfoTile(
+            icon: Icons.mail_outline_rounded,
+            title: current.email.isEmpty ? 'Nije uneseno' : current.email,
+            subtitle: "E-pošta",
+          ),
+          InfoTile(
+            icon: Icons.location_on_outlined,
+            title: current.address.isEmpty ? 'Nije uneseno' : current.address,
+            subtitle: "Adresa",
+          ),
           const SectionTitle("Povijest poslova"),
-          if (jobs.isEmpty) const Text("Nema evidentiranih poslova.", style: TextStyle(color: WorklogColors.muted)),
+          if (jobs.isEmpty)
+            const Text(
+              "Nema evidentiranih poslova.",
+              style: TextStyle(color: WorklogColors.muted),
+            ),
           ...jobs.map(
             (job) => Card(
               child: ListTile(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => JobDetailScreen(state: state, job: job))),
-                leading: const Icon(Icons.handyman_rounded, color: WorklogColors.cyan),
-                title: Text(job.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => JobDetailScreen(
+                      state: widget.state,
+                      job: job,
+                    ),
+                  ),
+                ),
+                leading: const Icon(
+                  Icons.handyman_rounded,
+                  color: WorklogColors.cyan,
+                ),
+                title: Text(
+                  job.title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
                 subtitle: Text(job.dateLabel),
                 trailing: Text(job.statusLabel),
               ),
@@ -57,9 +185,26 @@ class ClientDetailScreen extends StatelessWidget {
           ),
           const SectionTitle("Komunikacija"),
           FilledButton.icon(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MessagesScreen(client: client))),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MessagesScreen(client: current),
+              ),
+            ),
             icon: const Icon(Icons.chat_bubble_outline_rounded),
             label: const Text("Otvori poruke"),
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            onPressed: removeClient,
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: WorklogColors.danger,
+            ),
+            label: const Text(
+              'Izbriši klijenta',
+              style: TextStyle(color: WorklogColors.danger),
+            ),
           ),
         ],
       ),
