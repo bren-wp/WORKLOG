@@ -659,7 +659,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => securityBusy = true);
     try {
       final result = await security.authenticate(
-        reason: 'Potvrdi identitet za uključivanje zaključavanja WORKLOG aplikacije.',
+        reason:
+            'Potvrdi identitet za uključivanje zaključavanja WORKLOG aplikacije.',
       );
       if (!mounted) return;
 
@@ -818,8 +819,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     try {
       final bytes = Uint8List.fromList(
         utf8.encode(
-          const JsonEncoder.withIndent('  ')
-              .convert(widget.state.exportSnapshot()),
+          const JsonEncoder.withIndent(
+            '  ',
+          ).convert(widget.state.exportSnapshot()),
         ),
       );
       final path = await storage.persistBytes(

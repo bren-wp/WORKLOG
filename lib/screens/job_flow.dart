@@ -2160,8 +2160,9 @@ class _SendReportScreenState extends State<SendReportScreen> {
       final file = await _ensureReport();
       if (file == null || !mounted || !shareContext.mounted) return;
 
-      final result = await PdfReportService(storage)
-          .share(shareContext, file, widget.job);
+      final result = await PdfReportService(
+        storage,
+      ).share(shareContext, file, widget.job);
 
       if (result.status == ShareResultStatus.success) {
         widget.job.reportSent = true;
@@ -2239,7 +2240,8 @@ class _SendReportScreenState extends State<SendReportScreen> {
                 ShareTile(
                   icon: Icons.ios_share_rounded,
                   title: "Podijeli zapisnik",
-                  subtitle: "Otvori sustavni izbornik za e-poštu, WhatsApp i druge aplikacije.",
+                  subtitle:
+                      "Otvori sustavni izbornik za e-poštu, WhatsApp i druge aplikacije.",
                   onTap: busy ? () {} : () => _share(shareContext),
                 ),
                 ShareTile(
