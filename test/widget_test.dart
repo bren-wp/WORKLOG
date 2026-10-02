@@ -40,9 +40,7 @@ void main() {
     expect(find.text('Nastavi s Appleom'), findsNothing);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('globalna pretraga pronalazi klijenta po OIB-u', (
-    tester,
-  ) async {
+  testWidgets('globalna pretraga pronalazi klijenta po OIB-u', (tester) async {
     final state = AppState();
     final client = Client(
       id: 'client-oib',
@@ -112,5 +110,4 @@ void main() {
     expect(find.textContaining('ID nalog-2026-001'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-
 }

@@ -84,14 +84,14 @@ class Client {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'type': type,
-        'phone': phone,
-        'email': email,
-        'address': address,
-        'oib': oib,
-      };
+    'id': id,
+    'name': name,
+    'type': type,
+    'phone': phone,
+    'email': email,
+    'address': address,
+    'oib': oib,
+  };
 
   factory Client.fromJson(Map<String, dynamic> json) {
     return Client(
@@ -107,10 +107,7 @@ class Client {
 }
 
 class ClientDuplicateGroup {
-  const ClientDuplicateGroup({
-    required this.clients,
-    required this.reason,
-  });
+  const ClientDuplicateGroup({required this.clients, required this.reason});
 
   final List<Client> clients;
   final String reason;

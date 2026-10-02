@@ -322,20 +322,15 @@ class AppState extends ChangeNotifier {
         }
       }
 
-      final members = ids
-          .map((id) => byId[id])
-          .whereType<Client>()
-          .toList()
+      final members = ids.map((id) => byId[id]).whereType<Client>().toList()
         ..sort(
-          (a, b) => normalizeSearchValue(a.name)
-              .compareTo(normalizeSearchValue(b.name)),
+          (a, b) => normalizeSearchValue(
+            a.name,
+          ).compareTo(normalizeSearchValue(b.name)),
         );
 
       groups.add(
-        ClientDuplicateGroup(
-          clients: members,
-          reason: reasons.join(' • '),
-        ),
+        ClientDuplicateGroup(clients: members, reason: reasons.join(' • ')),
       );
     }
 
@@ -349,8 +344,9 @@ class AppState extends ChangeNotifier {
     if (keepClientId == removeClientId) return false;
 
     final keepIndex = clients.indexWhere((client) => client.id == keepClientId);
-    final removeIndex =
-        clients.indexWhere((client) => client.id == removeClientId);
+    final removeIndex = clients.indexWhere(
+      (client) => client.id == removeClientId,
+    );
     if (keepIndex < 0 || removeIndex < 0) return false;
 
     final keep = clients[keepIndex];

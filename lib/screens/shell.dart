@@ -820,8 +820,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
               onTap: () async {
                 await Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        ClientDuplicatesScreen(state: widget.state),
+                    builder: (_) => ClientDuplicatesScreen(state: widget.state),
                   ),
                 );
                 if (mounted) setState(() {});

@@ -150,10 +150,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => JobDetailScreen(
-                          state: widget.state,
-                          job: job,
-                        ),
+                        builder: (_) =>
+                            JobDetailScreen(state: widget.state, job: job),
                       ),
                     ),
                   ),
