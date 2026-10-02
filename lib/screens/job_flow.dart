@@ -1327,9 +1327,7 @@ class _NotesScreenState extends State<NotesScreen> {
   void addChecklistItem() {
     final value = checklistItem.text.trim();
     if (value.isEmpty) return;
-    setState(
-      () => widget.job.checklist.add(ChecklistItem(label: value)),
-    );
+    setState(() => widget.job.checklist.add(ChecklistItem(label: value)));
     checklistItem.clear();
     widget.state.updateJob();
   }
@@ -1340,7 +1338,9 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   void removeChecklistItem(ChecklistItem item) {
-    setState(() => widget.job.checklist.removeWhere((entry) => entry.id == item.id));
+    setState(
+      () => widget.job.checklist.removeWhere((entry) => entry.id == item.id),
+    );
     widget.state.updateJob();
   }
 
@@ -1396,8 +1396,9 @@ class _NotesScreenState extends State<NotesScreen> {
                   title: Text(
                     item.label,
                     style: TextStyle(
-                      decoration:
-                          item.completed ? TextDecoration.lineThrough : null,
+                      decoration: item.completed
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
                   secondary: IconButton(
@@ -1468,10 +1469,8 @@ class _NotesScreenState extends State<NotesScreen> {
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => BeforeAfterScreen(
-                    state: widget.state,
-                    job: widget.job,
-                  ),
+                  builder: (_) =>
+                      BeforeAfterScreen(state: widget.state, job: widget.job),
                 ),
               ),
             ),

@@ -17,12 +17,13 @@ Future<void> main(List<String> args) async {
       return;
     }
 
-    final files = directory
-        .listSync()
-        .whereType<File>()
-        .where((file) => file.path.toLowerCase().endsWith('.png'))
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
+    final files =
+        directory
+            .listSync()
+            .whereType<File>()
+            .where((file) => file.path.toLowerCase().endsWith('.png'))
+            .toList()
+          ..sort((a, b) => a.path.compareTo(b.path));
 
     if (files.isEmpty) {
       stderr.writeln('Nema PNG datoteka u: $directoryPath');

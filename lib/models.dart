@@ -460,21 +460,18 @@ class WorkTimeEntry {
 }
 
 class ChecklistItem {
-  ChecklistItem({
-    String? id,
-    required this.label,
-    this.completed = false,
-  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
+  ChecklistItem({String? id, required this.label, this.completed = false})
+    : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
   final String id;
   String label;
   bool completed;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'label': label,
-        'completed': completed,
-      };
+    'id': id,
+    'label': label,
+    'completed': completed,
+  };
 
   factory ChecklistItem.fromJson(Map<String, dynamic> json) {
     return ChecklistItem(
@@ -683,7 +680,9 @@ class WorkJob {
       notes: (json['notes'] as List? ?? const []).whereType<String>().toList(),
       checklist: (json['checklist'] as List? ?? const [])
           .whereType<Map>()
-          .map((item) => ChecklistItem.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) => ChecklistItem.fromJson(Map<String, dynamic>.from(item)),
+          )
           .where((item) => item.label.trim().isNotEmpty)
           .toList(),
       beforePhotoPaths: (json['beforePhotoPaths'] as List? ?? const [])

@@ -33,7 +33,11 @@ void main() {
       ],
       notes: ['Provjeren tlak.'],
       checklist: [
-        ChecklistItem(id: 'check-1', label: 'Provjeriti spojeve', completed: true),
+        ChecklistItem(
+          id: 'check-1',
+          label: 'Provjeriti spojeve',
+          completed: true,
+        ),
       ],
       beforePhotoPaths: ['/tmp/prije.jpg'],
       afterPhotoPaths: ['/tmp/poslije.jpg'],

@@ -183,10 +183,7 @@ class LoginScreen extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.security_rounded,
-                      color: WorklogColors.cyan,
-                    ),
+                    Icon(Icons.security_rounded, color: WorklogColors.cyan),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
