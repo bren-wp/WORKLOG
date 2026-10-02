@@ -118,7 +118,7 @@ class DashboardScreen extends StatelessWidget {
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.5,
+          childAspectRatio: 1.25,
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           children: [
@@ -208,21 +208,25 @@ class _DateBanner extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Danas',
-                  style: TextStyle(color: WorklogColors.muted),
-                ),
-                Text(
-                  formatCroatianDate(date),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Danas',
+                    style: TextStyle(color: WorklogColors.muted),
                   ),
-                ),
-              ],
+                  Text(
+                    formatCroatianDate(date),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -266,8 +270,11 @@ class _Metric extends StatelessWidget {
                   ),
                   Text(
                     label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 9,
+                      height: 1.15,
                       color: WorklogColors.muted,
                     ),
                   ),
