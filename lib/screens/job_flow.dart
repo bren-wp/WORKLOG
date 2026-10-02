@@ -30,7 +30,7 @@ class _NewJobScreenState extends State<NewJobScreen> {
   final location = TextEditingController();
   final description = TextEditingController();
 
-  late Client selectedClient;
+  Client? selectedClient;
   String priority = "Srednji";
   String assignedMemberId = "";
   DateTime selectedDate = DateTime.now();
@@ -40,7 +40,9 @@ class _NewJobScreenState extends State<NewJobScreen> {
   @override
   void initState() {
     super.initState();
-    selectedClient = widget.state.clients.first;
+    selectedClient = widget.state.clients.isEmpty
+        ? null
+        : widget.state.clients.first;
   }
 
   @override
@@ -106,6 +108,15 @@ class _NewJobScreenState extends State<NewJobScreen> {
 
   void save() {
     if (!(formKey.currentState?.validate() ?? false)) return;
+    final client = selectedClient;
+    if (client == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Prvo dodaj i odaberi klijenta za ovaj posao.'),
+        ),
+      );
+      return;
+    }
     if (!scheduledEnd.isAfter(scheduledStart)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -118,7 +129,7 @@ class _NewJobScreenState extends State<NewJobScreen> {
     widget.state.addJob(
       WorkJob(
         title: title.text.trim(),
-        client: selectedClient,
+        client: client,
         location: location.text.trim(),
         scheduledStart: scheduledStart,
         scheduledEnd: scheduledEnd,
@@ -153,6 +164,29 @@ class _NewJobScreenState extends State<NewJobScreen> {
                   : null,
             ),
             const SizedBox(height: 12),
+            if (widget.state.clients.isEmpty) ...[
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.person_add_alt_1_rounded,
+                        color: WorklogColors.cyan,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Nema spremljenih klijenata. Prvo dodaj klijenta u kartici Klijenti, a zatim izradi posao.',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             DropdownButtonFormField<Client>(
               initialValue: selectedClient,
               decoration: const InputDecoration(
@@ -167,8 +201,9 @@ class _NewJobScreenState extends State<NewJobScreen> {
                     ),
                   )
                   .toList(),
-              onChanged: (client) =>
-                  setState(() => selectedClient = client ?? selectedClient),
+              onChanged: (client) => setState(() => selectedClient = client),
+              validator: (client) =>
+                  client == null ? 'Odaberi klijenta.' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -266,7 +301,7 @@ class _NewJobScreenState extends State<NewJobScreen> {
             SizedBox(
               height: 52,
               child: FilledButton.icon(
-                onPressed: save,
+                onPressed: selectedClient == null ? null : save,
                 icon: const Icon(Icons.save_outlined),
                 label: const Text("Spremi posao"),
               ),
