@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: worklog-store-screenshots-commit
+  group: worklog-store-screenshots-commit-v2
   cancel-in-progress: true
 
 jobs:
