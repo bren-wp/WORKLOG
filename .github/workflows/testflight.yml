@@ -1,0 +1,221 @@
+name: WORKLOG TestFlight
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worklog-testflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    name: iOS potpisivanje i TestFlight
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    env:
+      BUNDLE_ID: com.brendigo.worklog
+      APPSTORE_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
+      APPSTORE_API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+      APPSTORE_TEAM_ID: ${{ vars.APPSTORE_TEAM_ID }}
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+    steps:
+      - name: Preuzmi izvorni kod
+        uses: actions/checkout@v4
+
+      - name: Postavi Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Provjeri Apple konfiguraciju
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in APPSTORE_ISSUER_ID APPSTORE_API_KEY_ID APPSTORE_TEAM_ID APPSTORE_API_PRIVATE_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Nedostaje GitHub Actions vrijednost: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::Dodaj potrebne vrijednosti prema docs/TESTFLIGHT.md."
+            exit 1
+          fi
+
+      - name: Provjeri Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          XCODE_MAJOR="$(xcodebuild -version | awk '/Xcode/ {split($2, parts, "."); print parts[1]}')"
+          if [ -z "$XCODE_MAJOR" ] || [ "$XCODE_MAJOR" -lt 26 ]; then
+            echo "::error::Za App Store Connect upload potreban je Xcode 26 ili noviji."
+            exit 1
+          fi
+
+      - name: Generiraj i konfiguriraj iOS platformu
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --org com.brendigo --project-name worklog --platforms android,ios .
+          python3 tool/configure_platforms.py
+          flutter pub get
+
+      - name: Odredi jedinstveni iOS build broj
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_BUILD="$(awk -F+ '/^version:/ {gsub(/[[:space:]]/, "", $2); print $2}' pubspec.yaml)"
+          if ! [[ "$BASE_BUILD" =~ ^[0-9]+$ ]]; then
+            echo "::error::Build broj u pubspec.yaml mora biti cijeli broj."
+            exit 1
+          fi
+
+          IOS_BUILD_NUMBER=$((BASE_BUILD + GITHUB_RUN_NUMBER))
+          if [ "$IOS_BUILD_NUMBER" -gt 9999 ]; then
+            echo "::error::Izračunati iOS build broj prelazi podržani raspon."
+            exit 1
+          fi
+
+          echo "IOS_BUILD_NUMBER=$IOS_BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "WORKLOG iOS build broj: $IOS_BUILD_NUMBER"
+
+      - name: Pripremi App Store Connect API ključ
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEY_DIR="$RUNNER_TEMP/appstore-connect"
+          KEY_PATH="$KEY_DIR/AuthKey_${APPSTORE_API_KEY_ID}.p8"
+          mkdir -p "$KEY_DIR"
+          printf '%s\n' "$APPSTORE_API_PRIVATE_KEY" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Pripremi Flutter i CocoaPods
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --build-number "$IOS_BUILD_NUMBER"
+
+      - name: Arhiviraj potpisani iOS build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios/archive
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPSTORE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
+            archive
+
+      - name: Generiraj ExportOptions.plist
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>export</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${APPSTORE_TEAM_ID}</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+          plutil -lint "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Izvezi IPA za App Store Connect
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf build/ios/testflight
+          mkdir -p build/ios/testflight
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/testflight \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
+
+      - name: Provjeri potpis i IPA
+        id: ipa
+        shell: bash
+        run: |
+          set -euo pipefail
+          IPA_PATH="$(find build/ios/testflight -maxdepth 1 -type f -name '*.ipa' -print -quit)"
+          if [ -z "$IPA_PATH" ] || [ ! -s "$IPA_PATH" ]; then
+            echo "::error::Potpisani IPA nije pronađen."
+            exit 1
+          fi
+
+          VERIFY_DIR="$RUNNER_TEMP/worklog-ipa-verify"
+          rm -rf "$VERIFY_DIR"
+          mkdir -p "$VERIFY_DIR"
+          unzip -q "$IPA_PATH" -d "$VERIFY_DIR"
+
+          APP_PATH="$(find "$VERIFY_DIR/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Aplikacija nije pronađena unutar IPA paketa."
+            exit 1
+          fi
+
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          test -s "$APP_PATH/embedded.mobileprovision"
+          security cms -D -i "$APP_PATH/embedded.mobileprovision" >/dev/null
+
+          shasum -a 256 "$IPA_PATH" > build/ios/testflight/SHA256SUMS.txt
+          echo "path=$IPA_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Spremi potpisani IPA kao artefakt
+        uses: actions/upload-artifact@v4
+        with:
+          name: WORKLOG-iOS-TestFlight
+          path: |
+            build/ios/testflight/*.ipa
+            build/ios/testflight/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Pošalji build na TestFlight
+        uses: apple-actions/upload-testflight-build@v5
+        with:
+          app-path: ${{ steps.ipa.outputs.path }}
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          wait-for-processing: 'true'
