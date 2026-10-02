@@ -300,7 +300,7 @@ class AppState extends ChangeNotifier {
   void updatePreferences(AppPreferences value) {
     preferences = value;
     notifyListeners();
-    _schedulePersist();
+    unawaited(_persist());
   }
 
   Map<String, dynamic> exportSnapshot() => {
