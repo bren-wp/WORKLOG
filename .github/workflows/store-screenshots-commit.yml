@@ -1,0 +1,57 @@
+name: WORKLOG Store Screenshots Commit
+
+on:
+  push:
+    branches:
+      - develop/worklog-0.9.0-assets-readme-polish
+
+permissions:
+  contents: write
+
+concurrency:
+  group: worklog-store-screenshots-commit
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop/worklog-0.9.0-assets-readme-polish
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Dohvati pakete
+        run: flutter pub get
+      - name: Generiraj stvarne Flutter screenshotove
+        run: flutter test tool/store_screenshots_test.dart --update-goldens
+      - name: Pripremi README i store screenshot direktorije
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/screenshots
+          mkdir -p store/android/screenshots/phone
+          mkdir -p store/ios/screenshots/iphone-6.9
+          cp tool/generated-screenshots/*.png docs/screenshots/
+          cp tool/generated-screenshots/*.png store/android/screenshots/phone/
+          cp tool/generated-screenshots/*.png store/ios/screenshots/iphone-6.9/
+          test -s docs/screenshots/worklog-dashboard.png
+          test -s docs/screenshots/worklog-jobs.png
+          test -s docs/screenshots/worklog-calendar.png
+          test -s docs/screenshots/worklog-clients.png
+      - name: Commitaj generirane screenshotove
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add docs/screenshots store/android/screenshots store/ios/screenshots
+          if git diff --cached --quiet; then
+            echo "Screenshotovi su već ažurni."
+            exit 0
+          fi
+          git config user.name "WORKLOG CI"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "assets: spremi stvarne WORKLOG UI screenshotove"
+          git push origin HEAD:develop/worklog-0.9.0-assets-readme-polish
