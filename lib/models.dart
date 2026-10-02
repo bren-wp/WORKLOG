@@ -265,6 +265,8 @@ class WorkJob {
     this.signaturePath,
     this.reportPath,
     this.reportSent = false,
+    this.assignedMemberId,
+    this.assignedMemberName,
   })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
         materials = materials ?? <MaterialItem>[],
         notes = notes ?? <String>[],
@@ -288,6 +290,8 @@ class WorkJob {
   String? signaturePath;
   String? reportPath;
   bool reportSent;
+  String? assignedMemberId;
+  String? assignedMemberName;
 
   String get statusLabel => switch (status) {
         JobStatus.planned => "Planirano",
@@ -313,6 +317,8 @@ class WorkJob {
         'signaturePath': signaturePath,
         'reportPath': reportPath,
         'reportSent': reportSent,
+        'assignedMemberId': assignedMemberId,
+        'assignedMemberName': assignedMemberName,
       };
 
   factory WorkJob.fromJson(Map<String, dynamic> json) {
@@ -353,6 +359,8 @@ class WorkJob {
       signaturePath: json['signaturePath'] as String?,
       reportPath: json['reportPath'] as String?,
       reportSent: json['reportSent'] as bool? ?? false,
+      assignedMemberId: json['assignedMemberId'] as String?,
+      assignedMemberName: json['assignedMemberName'] as String?,
     );
   }
 }
