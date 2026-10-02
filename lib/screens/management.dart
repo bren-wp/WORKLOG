@@ -26,6 +26,7 @@ class _ClientEditorScreenState extends State<ClientEditorScreen> {
   late final TextEditingController phone;
   late final TextEditingController email;
   late final TextEditingController address;
+  late final TextEditingController oib;
   late String type;
 
   bool get editing => widget.client != null;
@@ -38,6 +39,7 @@ class _ClientEditorScreenState extends State<ClientEditorScreen> {
     phone = TextEditingController(text: client?.phone ?? '');
     email = TextEditingController(text: client?.email ?? '');
     address = TextEditingController(text: client?.address ?? '');
+    oib = TextEditingController(text: client?.oib ?? '');
     type = client?.type ?? 'Privatna osoba';
   }
 
@@ -47,6 +49,7 @@ class _ClientEditorScreenState extends State<ClientEditorScreen> {
     phone.dispose();
     email.dispose();
     address.dispose();
+    oib.dispose();
     super.dispose();
   }
 
@@ -60,6 +63,7 @@ class _ClientEditorScreenState extends State<ClientEditorScreen> {
           phone: phone.text.trim(),
           email: email.text.trim(),
           address: address.text.trim(),
+          oib: oib.text.trim(),
         ),
       );
     } else {
@@ -70,6 +74,7 @@ class _ClientEditorScreenState extends State<ClientEditorScreen> {
           phone: phone.text.trim(),
           email: email.text.trim(),
           address: address.text.trim(),
+          oib: oib.text.trim(),
         ),
       );
     }
@@ -149,6 +154,24 @@ class _ClientEditorScreenState extends State<ClientEditorScreen> {
               ),
               minLines: 2,
               maxLines: 3,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: oib,
+              keyboardType: TextInputType.number,
+              maxLength: 11,
+              decoration: const InputDecoration(
+                labelText: 'OIB',
+                prefixIcon: Icon(Icons.numbers_rounded),
+                counterText: '',
+              ),
+              validator: (value) {
+                final text = value?.trim() ?? '';
+                if (text.isEmpty) return null;
+                return isValidCroatianOib(text)
+                    ? null
+                    : 'Unesi ispravan OIB od 11 znamenki.';
+              },
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -305,6 +328,13 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                 labelText: 'OIB',
                 counterText: '',
               ),
+              validator: (value) {
+                final text = value?.trim() ?? '';
+                if (text.isEmpty) return null;
+                return isValidCroatianOib(text)
+                    ? null
+                    : 'Unesi ispravan OIB od 11 znamenki.';
+              },
             ),
             const SizedBox(height: 24),
             SizedBox(
