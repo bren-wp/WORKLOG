@@ -44,17 +44,25 @@ final class AuthService
         $hash = $this->passwordHash($password);
         $now = self::now();
 
-        $insert = $this->db->prepare(
-            'INSERT INTO users (id, name, email, password_hash, email_verified_at, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?)',
-        );
-        $insert->execute([$id, $name, $email, $hash, $now, $now, $now]);
+        $this->db->beginTransaction();
+        try {
+            $insert = $this->db->prepare(
+                'INSERT INTO users (id, name, email, password_hash, email_verified_at, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)',
+            );
+            $insert->execute([$id, $name, $email, $hash, $now, $now, $now]);
 
-        return $this->issueSession([
-            'id' => $id,
-            'name' => $name,
-            'email' => $email,
-        ]);
+            $session = $this->issueSession([
+                'id' => $id,
+                'name' => $name,
+                'email' => $email,
+            ], false);
+            $this->db->commit();
+            return $session;
+        } catch (Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
     }
 
     /** @return array<string,mixed> */
