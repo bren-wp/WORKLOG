@@ -185,13 +185,14 @@ class AppState extends ChangeNotifier {
 
     if (savedJobs.isNotEmpty) {
       for (final job in savedJobs) {
-        final canonical = clients.cast<Client?>().firstWhere(
-              (client) =>
-                  client?.id == job.client.id ||
-                  (client?.email.isNotEmpty == true &&
-                      client?.email == job.client.email),
-              orElse: () => null,
-            );
+        Client? canonical;
+        for (final client in clients) {
+          if (client.id == job.client.id ||
+              (client.email.isNotEmpty && client.email == job.client.email)) {
+            canonical = client;
+            break;
+          }
+        }
         if (canonical != null) {
           job.client = canonical;
         }
