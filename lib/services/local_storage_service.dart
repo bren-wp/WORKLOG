@@ -77,6 +77,13 @@ class LocalStorageService {
     return file.path;
   }
 
+  Future<void> clearAll() async {
+    final root = await _root;
+    if (await root.exists()) {
+      await root.delete(recursive: true);
+    }
+  }
+
   String _extensionOf(String path) {
     final dot = path.lastIndexOf('.');
     if (dot < 0 || dot == path.length - 1) return 'jpg';
