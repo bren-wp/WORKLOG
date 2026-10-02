@@ -57,3 +57,20 @@ Referentni vizuali koriste geometrijsku kombinaciju nalik Sora + Inter. Produkci
 - Pregled zapisnika
 - Slanje izvještaja
 - Obavijesti i izvještaji
+
+
+## Produkcijski asseti
+
+Primarni izvor ostaje `assets/brand/worklog-mark.svg`.
+
+Reproduktibilni generator `tool/generate_brand_assets.py` stvara:
+
+- 1024×1024 WORKLOG app icon
+- transparentni splash znak
+- Android density launcher ikone
+- Android adaptive foreground i monochrome ikonu sa sigurnom zonom za launcher maske
+- Google Play 512×512 icon
+- Google Play 1024×500 feature graphic
+- iOS AppIcon katalog i 1024×1024 App Store icon
+
+Store asseti koji se koriste za dokumentaciju i objavu trajno su spremljeni u `store/android/assets/` i `store/ios/assets/`.
