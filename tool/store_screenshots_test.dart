@@ -39,24 +39,31 @@ Future<void> captureStoreScreen(
       captureKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   final logicalWidth = physicalSize.width / devicePixelRatio;
   final captureRatio = physicalSize.width / logicalWidth;
-  final image = await boundary.toImage(pixelRatio: captureRatio);
-  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  if (byteData == null) {
-    throw StateError('Flutter nije mogao generirati PNG screenshot.');
-  }
 
-  final file = File(filePath);
-  await file.parent.create(recursive: true);
-  await file.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+  await tester.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: captureRatio);
+    try {
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        throw StateError('Flutter nije mogao generirati PNG screenshot.');
+      }
 
-  if (image.width != physicalSize.width.round() ||
-      image.height != physicalSize.height.round()) {
-    throw StateError(
-      'Neispravna screenshot dimenzija: '
-      '${image.width}x${image.height}, očekivano '
-      '${physicalSize.width.round()}x${physicalSize.height.round()}.',
-    );
-  }
+      final file = File(filePath);
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+
+      if (image.width != physicalSize.width.round() ||
+          image.height != physicalSize.height.round()) {
+        throw StateError(
+          'Neispravna screenshot dimenzija: '
+          '${image.width}x${image.height}, očekivano '
+          '${physicalSize.width.round()}x${physicalSize.height.round()}.',
+        );
+      }
+    } finally {
+      image.dispose();
+    }
+  });
 }
 
 AppState populatedState() {
