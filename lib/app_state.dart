@@ -145,6 +145,8 @@ class AppState extends ChangeNotifier {
       return;
     }
 
+    final schemaVersion = (data['schemaVersion'] as num?)?.toInt() ?? 1;
+
     onboardingComplete = data['onboardingComplete'] as bool? ?? false;
     profileReady = data['profileReady'] as bool? ?? false;
 
@@ -174,6 +176,13 @@ class AppState extends ChangeNotifier {
     if (preferencesRaw is Map) {
       preferences = AppPreferences.fromJson(
         Map<String, dynamic>.from(preferencesRaw),
+      );
+    }
+
+    if (schemaVersion < 4) {
+      preferences = preferences.copyWith(
+        notificationsEnabled: false,
+        biometricLockEnabled: false,
       );
     }
 
@@ -306,7 +315,7 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> exportSnapshot() => {
-        'schemaVersion': 3,
+        'schemaVersion': 4,
         'companyProfile': companyProfile.toJson(),
         'preferences': preferences.toJson(),
         'clients': clients.map((client) => client.toJson()).toList(),
@@ -351,7 +360,7 @@ class AppState extends ChangeNotifier {
     if (service == null) return;
     try {
       await service.writeState({
-        'schemaVersion': 3,
+        'schemaVersion': 4,
         'onboardingComplete': onboardingComplete,
         'profileReady': profileReady,
         'companyProfile': companyProfile.toJson(),
