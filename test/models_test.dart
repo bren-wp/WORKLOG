@@ -2,6 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:worklog/models.dart';
 
 void main() {
+  test('hrvatski OIB prolazi checksum validaciju', () {
+    expect(isValidCroatianOib('69435151530'), isTrue);
+    expect(isValidCroatianOib('12345678901'), isFalse);
+    expect(isValidCroatianOib('123'), isFalse);
+  });
+
   test('WorkJob JSON zapis zadržava produkcijske podatke', () {
     final client = Client(
       name: 'Ivica Horvat',
@@ -9,6 +15,7 @@ void main() {
       phone: '091 123 4567',
       email: 'ivica@example.com',
       address: 'Zagreb',
+      oib: '69435151530',
     );
     final original = WorkJob(
       id: 'job-1',
@@ -69,6 +76,7 @@ void main() {
     expect(restored.reportPath, '/tmp/zapisnik.pdf');
     expect(restored.reportSent, isTrue);
     expect(restored.client.id, client.id);
+    expect(restored.client.oib, '69435151530');
     expect(restored.assignedMemberId, 'team-1');
     expect(restored.assignedMemberName, 'Ivan Barić');
     expect(restored.scheduledStart, DateTime(2026, 10, 2, 8));

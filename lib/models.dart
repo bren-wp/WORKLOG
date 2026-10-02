@@ -23,6 +23,28 @@ extension JobStatusPresentation on JobStatus {
       this == JobStatus.completed || this == JobStatus.cancelled;
 }
 
+bool isValidCroatianOib(String value) {
+  final oib = value.replaceAll(RegExp(r'\s+'), '');
+  if (!RegExp(r'^\d{11}$').hasMatch(oib)) return false;
+
+  var remainder = 10;
+  for (var index = 0; index < 10; index++) {
+    remainder = (remainder + int.parse(oib[index])) % 10;
+    if (remainder == 0) remainder = 10;
+    remainder = (remainder * 2) % 11;
+  }
+
+  var controlDigit = 11 - remainder;
+  if (controlDigit == 10) controlDigit = 0;
+  return controlDigit == int.parse(oib[10]);
+}
+
+String normalizeSearchValue(String value) =>
+    value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+String normalizePhoneValue(String value) =>
+    value.replaceAll(RegExp(r'[^0-9+]'), '').replaceFirst(RegExp(r'^00'), '+');
+
 class Client {
   Client({
     String? id,
@@ -31,6 +53,7 @@ class Client {
     required this.phone,
     required this.email,
     required this.address,
+    this.oib = '',
   }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
   final String id;
@@ -39,6 +62,7 @@ class Client {
   final String phone;
   final String email;
   final String address;
+  final String oib;
 
   Client copyWith({
     String? name,
@@ -46,6 +70,7 @@ class Client {
     String? phone,
     String? email,
     String? address,
+    String? oib,
   }) {
     return Client(
       id: id,
@@ -54,6 +79,7 @@ class Client {
       phone: phone ?? this.phone,
       email: email ?? this.email,
       address: address ?? this.address,
+      oib: oib ?? this.oib,
     );
   }
 
@@ -64,6 +90,7 @@ class Client {
     'phone': phone,
     'email': email,
     'address': address,
+    'oib': oib,
   };
 
   factory Client.fromJson(Map<String, dynamic> json) {
@@ -74,8 +101,16 @@ class Client {
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String? ?? '',
       address: json['address'] as String? ?? '',
+      oib: json['oib'] as String? ?? '',
     );
   }
+}
+
+class ClientDuplicateGroup {
+  const ClientDuplicateGroup({required this.clients, required this.reason});
+
+  final List<Client> clients;
+  final String reason;
 }
 
 class CompanyProfile {

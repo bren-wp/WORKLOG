@@ -4,6 +4,40 @@
 
 WORKLOG je Android i iOS aplikacija za obrtnike, servisere, montažere i terenske timove. Cilj je da jedan posao ima jedan pouzdan zapis: klijent, lokacija, termin, vrijeme rada, materijal, fotografije, napomene, potpis i završni izvještaj.
 
+## Verzija 0.10.0
+
+Verzija 0.10.0 fokusirana je na integritet klijentskih podataka i brže pronalaženje stvarnih radnih zapisa.
+
+### Novo u 0.10.0
+
+- globalna pretraga poslova, klijenata, OIB-a, adresa, članova tima i ID-a naloga
+- OIB kao dio klijentskog modela uz hrvatsku MOD 11,10 checksum validaciju
+- pretraga klijenata uključuje OIB
+- detekcija mogućih duplikata po valjanom OIB-u, e-pošti, telefonu ili istom nazivu i adresi
+- kontrolirano spajanje duplikata uz odabir primarnog klijenta
+- spajanje čuva i prevezuje povezane poslove i razgovore
+- prazni kontaktni podaci primarnog zapisa mogu se dopuniti iz duplikata
+- audit događaj za ažuriranje i spajanje klijenta
+- schema v9 uz kompatibilnost sa starim klijentima bez OIB-a
+- ciljani testovi za OIB, duplikate, migraciju povijesti i globalnu pretragu
+
+## Verzija 0.9.0
+
+Verzija 0.9.0 uklanja preostale lažne/no-op dijelove korisničkog iskustva i uvodi stvarne store materijale generirane iz Flutter UI-ja.
+
+### Novo u 0.9.0
+
+- šest stvarnih Flutter UI screenshotova za README
+- odvojeni Google Play 1080×1920, iPhone 6.9" 1320×2868 i iPad 13" 2064×2752 store setovi
+- automatska provjera dimenzija i RGB/no-alpha Apple screenshotova
+- premium marketinški README s postojećim WORKLOG assetima
+- trajna prilagodljiva kontrolna lista po poslu, schema v8
+- uklonjena hardkodirana HVAC kontrolna lista
+- fotografije u bilješkama vode na stvarni photo manager
+- uklonjeni neaktivni social login/reset/glasovna bilješka elementi
+- lokalni pristup više ne glumi produkcijsku serversku autentikaciju
+- ispravljen dashboard overflow otkriven screenshot testiranjem
+
 ## Verzija 0.8.0
 
 Verzija 0.8.0 fokusirana je na stvarnu distribucijsku i store pripremu bez izmišljanja produkcijskog potpisa.

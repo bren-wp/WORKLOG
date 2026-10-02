@@ -136,7 +136,7 @@ void main() {
     expect(state.unreadActivityCount, 0);
 
     final snapshot = state.exportSnapshot();
-    expect(snapshot['schemaVersion'], 8);
+    expect(snapshot['schemaVersion'], 9);
     expect(snapshot['messages'], isA<List>());
     expect(snapshot['activityItems'], isA<List>());
   });
@@ -154,6 +154,60 @@ void main() {
 
     expect(state.messagesForClient(client.id), hasLength(1));
     expect(state.activityItems, isEmpty);
+  });
+
+  test('detekcija duplikata i spajanje čuvaju poslove i razgovore', () {
+    final state = AppState();
+    final primary = Client(
+      id: 'primary',
+      name: 'Adria Projekt d.o.o.',
+      type: 'Tvrtka',
+      phone: '',
+      email: 'info@adria.hr',
+      address: 'Rijeka',
+      oib: '69435151530',
+    );
+    final duplicate = Client(
+      id: 'duplicate',
+      name: 'Adria Projekt',
+      type: 'Tvrtka',
+      phone: '091 555 1234',
+      email: 'INFO@ADRIA.HR',
+      address: 'Rijeka',
+      oib: '69435151530',
+    );
+    final job = testJob(duplicate);
+    state.clients.addAll([primary, duplicate]);
+    state.jobs.add(job);
+    state.messages.add(
+      ConversationMessage(
+        id: 'message-1',
+        clientId: duplicate.id,
+        text: 'Potvrđujem termin.',
+        mine: false,
+        createdAt: DateTime(2026, 10, 2, 9),
+      ),
+    );
+
+    final groups = state.findDuplicateClientGroups();
+    expect(groups, hasLength(1));
+    expect(groups.single.clients, hasLength(2));
+    expect(groups.single.reason, contains('isti OIB'));
+
+    expect(
+      state.mergeClients(
+        keepClientId: primary.id,
+        removeClientId: duplicate.id,
+      ),
+      isTrue,
+    );
+
+    expect(state.clients, hasLength(1));
+    expect(state.clients.single.id, primary.id);
+    expect(state.clients.single.phone, '091 555 1234');
+    expect(job.client.id, primary.id);
+    expect(state.messages.single.clientId, primary.id);
+    expect(state.activityItems.first.title, 'Klijenti spojeni');
   });
 
   test('klijent bez poslova može se izbrisati', () {

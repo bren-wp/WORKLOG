@@ -150,6 +150,11 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
             title: current.address.isEmpty ? 'Nije uneseno' : current.address,
             subtitle: "Adresa",
           ),
+          InfoTile(
+            icon: Icons.numbers_rounded,
+            title: current.oib.isEmpty ? 'Nije uneseno' : current.oib,
+            subtitle: "OIB",
+          ),
           const SectionTitle("Povijest poslova"),
           if (jobs.isEmpty)
             const Text(
