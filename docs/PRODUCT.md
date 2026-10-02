@@ -4,6 +4,26 @@
 
 WORKLOG je Android i iOS aplikacija za obrtnike, servisere, montažere i terenske timove. Cilj je da jedan posao ima jedan pouzdan zapis: klijent, lokacija, termin, vrijeme rada, materijal, fotografije, napomene, potpis i završni izvještaj.
 
+## Verzija 0.8.0
+
+Verzija 0.8.0 fokusirana je na stvarnu distribucijsku i store pripremu bez izmišljanja produkcijskog potpisa.
+
+### Novo u 0.8.0
+
+- Android `compileSdk` i `targetSdk` eksplicitno postavljeni na API 36
+- Android `minSdk` 24 i Java 17
+- iOS deployment target 13.0
+- CI odbija iOS store pripremu ako Xcode ili iOS SDK nisu verzije 26+
+- reproduktibilni WORKLOG generator app icon, adaptive icon, monochrome icon, splash i store asseta
+- stvarni 1024×1024 iOS/App Store icon, 512×512 Play icon i 1024×500 Play feature graphic u repozitoriju
+- Android production signing preko GitHub Secrets bez commita privatnog keystorea
+- CI jasno označava nepotpisane/razvojno potpisane artefakte i ne predstavlja ih kao Play-ready
+- zaseban TestFlight workflow spreman za App Store Connect API vjerodajnice
+- dokumentirani privacy/store compliance podaci izvedeni iz stvarnog ponašanja aplikacije
+- hrvatski Google Play i App Store listing tekstovi
+
+Serverska autentikacija i cloud sinkronizacija i dalje nisu implementirane kao produkcijska infrastruktura. Postojeći prijavni ekran ne smije se tumačiti kao dovršena serverska autentikacija.
+
 ## Verzija 0.7.0
 
 Verzija 0.7.0 uklanja lažno početno seedanje podataka i pretvara evidenciju vremena u trajni model koji preživljava zatvaranje ekrana i ponovno pokretanje aplikacije.

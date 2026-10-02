@@ -23,10 +23,24 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Provjeri Python alate
+        run: python3 -m py_compile tool/configure_platforms.py tool/generate_brand_assets.py
       - name: Generiraj Android/iOS platformu
         run: flutter create --org com.brendigo --project-name worklog --platforms android,ios .
-      - name: Konfiguriraj platforme
+      - name: Konfiguriraj platforme i branding
         run: python3 tool/configure_platforms.py
+      - name: Provjeri store i platform assete
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s assets/brand/generated/worklog-app-icon-1024.png
+          test -s store/android/assets/worklog-app-icon-512.png
+          test -s store/android/assets/worklog-feature-graphic-1024x500.png
+          test -s store/ios/assets/worklog-app-store-icon-1024.png
+          grep -q 'compileSdk = 36' android/app/build.gradle.kts
+          grep -q 'targetSdk = 36' android/app/build.gradle.kts
+          grep -q 'minSdk = 24' android/app/build.gradle.kts
+          grep -q 'IPHONEOS_DEPLOYMENT_TARGET = 13.0;' ios/Runner.xcodeproj/project.pbxproj
       - name: Dohvati pakete
         run: flutter pub get
       - name: Provjeri format
@@ -37,8 +51,13 @@ jobs:
         run: flutter test
 
   android:
-    name: Android produkcijski APK i AAB
+    name: Android release APK i AAB
     runs-on: ubuntu-latest
+    env:
+      WORKLOG_ANDROID_KEYSTORE_BASE64: ${{ secrets.WORKLOG_ANDROID_KEYSTORE_BASE64 }}
+      WORKLOG_KEYSTORE_PASSWORD: ${{ secrets.WORKLOG_KEYSTORE_PASSWORD }}
+      WORKLOG_KEY_ALIAS: ${{ secrets.WORKLOG_KEY_ALIAS }}
+      WORKLOG_KEY_PASSWORD: ${{ secrets.WORKLOG_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -48,6 +67,23 @@ jobs:
       - run: flutter create --org com.brendigo --project-name worklog --platforms android,ios .
       - run: python3 tool/configure_platforms.py
       - run: flutter pub get
+      - name: Pripremi produkcijski Android signing ako su tajne dostupne
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${WORKLOG_ANDROID_KEYSTORE_BASE64:-}" ] &&
+             [ -n "${WORKLOG_KEYSTORE_PASSWORD:-}" ] &&
+             [ -n "${WORKLOG_KEY_ALIAS:-}" ] &&
+             [ -n "${WORKLOG_KEY_PASSWORD:-}" ]; then
+            KEYSTORE_PATH="$RUNNER_TEMP/worklog-upload.jks"
+            printf '%s' "$WORKLOG_ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+            test -s "$KEYSTORE_PATH"
+            echo "WORKLOG_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+            echo "WORKLOG_SIGNING_MODE=production" >> "$GITHUB_ENV"
+          else
+            echo "WORKLOG_SIGNING_MODE=ci-debug" >> "$GITHUB_ENV"
+            echo "::notice::Android produkcijski keystore nije postavljen; CI build će koristiti Flutterov razvojni signing i neće se označiti kao Play Store-ready."
+          fi
       - name: Izgradi APK
         run: flutter build apk --release
       - name: Izgradi AAB
@@ -58,11 +94,21 @@ jobs:
           set -euo pipefail
           VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
           mkdir -p artifacts/android
-          cp build/app/outputs/flutter-apk/app-release.apk "artifacts/android/WORKLOG-v${VERSION}-Android.apk"
-          cp build/app/outputs/bundle/release/app-release.aab "artifacts/android/WORKLOG-v${VERSION}-Android.aab"
-          test -s "artifacts/android/WORKLOG-v${VERSION}-Android.apk"
-          test -s "artifacts/android/WORKLOG-v${VERSION}-Android.aab"
-          sha256sum artifacts/android/* > artifacts/android/SHA256SUMS.txt
+          if [ "$WORKLOG_SIGNING_MODE" = "production" ]; then
+            APK_NAME="WORKLOG-v${VERSION}-Android.apk"
+            AAB_NAME="WORKLOG-v${VERSION}-Android.aab"
+            STATUS="production-signed"
+          else
+            APK_NAME="WORKLOG-v${VERSION}-Android-CI.apk"
+            AAB_NAME="WORKLOG-v${VERSION}-Android-CI.aab"
+            STATUS="ci-debug-signed-not-for-play"
+          fi
+          cp build/app/outputs/flutter-apk/app-release.apk "artifacts/android/$APK_NAME"
+          cp build/app/outputs/bundle/release/app-release.aab "artifacts/android/$AAB_NAME"
+          test -s "artifacts/android/$APK_NAME"
+          test -s "artifacts/android/$AAB_NAME"
+          printf 'signing=%s\npackage=com.brendigo.worklog\ntargetSdk=36\n' "$STATUS" > artifacts/android/SIGNING-STATUS.txt
+          sha256sum "artifacts/android/$APK_NAME" "artifacts/android/$AAB_NAME" > artifacts/android/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: WORKLOG-Android
@@ -70,7 +116,7 @@ jobs:
           if-no-files-found: error
 
   ios:
-    name: iOS produkcijski build bez codesigna
+    name: iOS release build bez codesigna
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -78,6 +124,22 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Provjeri Xcode i iOS SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
+          XCODE_MAJOR="$(xcodebuild -version | awk '/Xcode/ {split($2, p, "."); print p[1]}')"
+          SDK_MAJOR="${SDK_VERSION%%.*}"
+          if [ -z "$XCODE_MAJOR" ] || [ "$XCODE_MAJOR" -lt 26 ]; then
+            echo "::error::Potreban je Xcode 26 ili noviji."
+            exit 1
+          fi
+          if [ -z "$SDK_MAJOR" ] || [ "$SDK_MAJOR" -lt 26 ]; then
+            echo "::error::Potreban je iOS 26 SDK ili noviji."
+            exit 1
+          fi
       - run: flutter create --org com.brendigo --project-name worklog --platforms android,ios .
       - run: python3 tool/configure_platforms.py
       - run: flutter pub get
@@ -89,10 +151,12 @@ jobs:
           set -euo pipefail
           VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
           test -d build/ios/iphoneos/Runner.app
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' build/ios/iphoneos/Runner.app/Info.plist
           mkdir -p artifacts/ios
           tar -czf "artifacts/ios/WORKLOG-v${VERSION}-iOS-no-codesign.tar.gz" -C build/ios/iphoneos Runner.app
           test -s "artifacts/ios/WORKLOG-v${VERSION}-iOS-no-codesign.tar.gz"
-          shasum -a 256 artifacts/ios/* > artifacts/ios/SHA256SUMS.txt
+          printf 'signing=none\nbundle=com.brendigo.worklog\nminimumOS=13.0\n' > artifacts/ios/SIGNING-STATUS.txt
+          shasum -a 256 "artifacts/ios/WORKLOG-v${VERSION}-iOS-no-codesign.tar.gz" > artifacts/ios/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: WORKLOG-iOS-no-codesign
