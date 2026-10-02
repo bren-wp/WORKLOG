@@ -6,7 +6,7 @@
 
 ## Status
 
-Aktivni razvoj: **0.7.0**. Projekt je izgrađen u Flutteru s jednim kodom za Android i iOS. Cijelo korisničko sučelje je na hrvatskom i vizualno prati odobreni WORKLOG branding.
+Aktivni razvoj: **0.8.0**. Projekt je izgrađen u Flutteru s jednim kodom za Android i iOS. Cijelo korisničko sučelje je na hrvatskom i vizualno prati odobreni WORKLOG branding.
 
 ## Pokretanje
 
@@ -28,7 +28,7 @@ flutter run
 
 ## Implementirani moduli
 
-- onboarding i prijava
+- onboarding i lokalni prijavni tok (serverska autentikacija još nije produkcijski backend)
 - postavljanje profila tvrtke
 - Početna
 - Poslovi, statusi i potpuno uređivanje naloga
@@ -71,6 +71,8 @@ GitHub Actions na svakoj promjeni izvršava:
 - Android release APK build
 - Android release AAB build
 - provjeru postojanja i SHA-256 checksumova Android artefakata
+- Android compile/target API 36 i min SDK 24 provjeru
+- iOS Xcode 26+ / iOS 26+ SDK provjeru i deployment target 13.0
 - iOS release build bez potpisivanja
 - provjeru i upload no-codesign iOS artefakta
 
@@ -84,6 +86,27 @@ Glavne boje:
 - `#10B981` potvrda / završeno
 
 Izvorni vektorski znak nalazi se u `assets/brand/worklog-mark.svg`.
+
+Generirani produkcijski brand asseti:
+
+- `assets/brand/generated/worklog-app-icon-1024.png`
+- `assets/brand/generated/worklog-splash-mark-512.png`
+- `store/android/assets/worklog-app-icon-512.png`
+- `store/android/assets/worklog-feature-graphic-1024x500.png`
+- `store/ios/assets/worklog-app-store-icon-1024.png`
+
+`tool/generate_brand_assets.py` reproduktibilno generira launcher/App Store/Play Store assete iz WORKLOG geometrijskog znaka.
+
+## Store i privatnost
+
+- [Store compliance](docs/STORE-COMPLIANCE.md)
+- [Privatnost i stvarno ponašanje podataka](docs/PRIVACY.md)
+- [Android production signing](docs/ANDROID-SIGNING.md)
+- [TestFlight priprema](docs/TESTFLIGHT.md)
+- [Google Play listing — hr-HR](store/google-play/hr-HR.md)
+- [App Store listing — hr-HR](store/app-store/hr-HR.md)
+
+Produkcijski Android AAB je Play-ready tek kada su postavljene stvarne signing tajne. Potpisani iOS IPA/TestFlight build zahtijeva vlasnikove Apple Developer/App Store Connect vjerodajnice.
 
 ## Licenca
 
