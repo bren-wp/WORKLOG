@@ -203,8 +203,20 @@ class JobCard extends StatelessWidget {
                   children: [
                     Text(job.title, style: const TextStyle(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 3),
-                    Text(job.client.name, style: const TextStyle(color: WorklogColors.muted, fontSize: 12)),
-                    Text(job.location, style: const TextStyle(color: WorklogColors.muted, fontSize: 12)),
+                    Text(
+                      "${job.client.name} • ${job.assignedMemberName ?? "Nije dodijeljeno"}",
+                      style: const TextStyle(
+                        color: WorklogColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      job.location,
+                      style: const TextStyle(
+                        color: WorklogColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -301,7 +313,10 @@ class CalendarScreen extends StatelessWidget {
             child: ListTile(
               leading: Text(["Pon", "Uto", "Sri", "Čet"][entry.key % 4], style: const TextStyle(color: WorklogColors.primary, fontWeight: FontWeight.w900)),
               title: Text(entry.value.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text("${entry.value.timeLabel} • ${entry.value.client.name}"),
+              subtitle: Text(
+                "${entry.value.timeLabel} • ${entry.value.client.name} • "
+                "${entry.value.assignedMemberName ?? "Nije dodijeljeno"}",
+              ),
               trailing: Text(entry.value.statusLabel, style: const TextStyle(fontSize: 11)),
             ),
           ),
