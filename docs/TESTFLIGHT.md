@@ -7,7 +7,7 @@ WORKLOG može graditi, potpisati i poslati iOS verziju u TestFlight potpuno kroz
 Datoteka `.github/workflows/testflight.yml`:
 
 1. pokreće se ručno ili kada se objavi GitHub Release
-2. koristi GitHubov macOS runner
+2. koristi GitHubov macOS 26 runner i provjerava Xcode 26+
 3. generira iOS projekt iz postojećeg Flutter projekta
 4. radi release pripremu bez potpisa
 5. koristi Xcode automatic signing uz App Store Connect API ključ
@@ -76,12 +76,13 @@ Workflow se automatski pokreće i na događaj:
 
 Zato svaki budući objavljeni GitHub Release može automatski proizvesti novi iOS build i poslati ga u TestFlight.
 
-Za svaki build koristi se GitHub `run_number` kao iOS build number, tako da svaki upload ima novi `CFBundleVersion` čak i kada marketinška verzija u `pubspec.yaml` ostane ista.
+iOS build broj računa se kao postojeći broj iza znaka `+` u `pubspec.yaml` plus GitHub `run_number`. Za trenutno stanje `0.7.0+7` prvi TestFlight run zato koristi build broj `8`, a ne `1`.
 
 ## Sigurnost
 
 - App Store Connect privatni ključ nalazi se samo u GitHub Actions Secrets.
 - Workflow ne ispisuje sadržaj privatnog ključa.
+- Xcode dobiva API ključ kroz privremenu datoteku na ephemeral macOS runneru.
 - Potpisani IPA provjerava se s `codesign --verify`.
 - Provjerava se prisutnost i čitljivost provisioning profila prije slanja.
 - Nepotpisani iOS CI iz `ci.yml` ostaje odvojen i nastavlja raditi bez Apple vjerodajnica.
