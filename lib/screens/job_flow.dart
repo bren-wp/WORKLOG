@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
+
 import '../app_state.dart';
 import '../brand.dart';
 import '../models.dart';
@@ -30,7 +30,7 @@ class _NewJobScreenState extends State<NewJobScreen> {
   final location = TextEditingController();
   final description = TextEditingController();
 
-  late Client selectedClient;
+  Client? selectedClient;
   String priority = "Srednji";
   String assignedMemberId = "";
   DateTime selectedDate = DateTime.now();
@@ -40,7 +40,9 @@ class _NewJobScreenState extends State<NewJobScreen> {
   @override
   void initState() {
     super.initState();
-    selectedClient = widget.state.clients.first;
+    selectedClient = widget.state.clients.isEmpty
+        ? null
+        : widget.state.clients.first;
   }
 
   @override
@@ -52,20 +54,20 @@ class _NewJobScreenState extends State<NewJobScreen> {
   }
 
   DateTime get scheduledStart => DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        startTime.hour,
-        startTime.minute,
-      );
+    selectedDate.year,
+    selectedDate.month,
+    selectedDate.day,
+    startTime.hour,
+    startTime.minute,
+  );
 
   DateTime get scheduledEnd => DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        endTime.hour,
-        endTime.minute,
-      );
+    selectedDate.year,
+    selectedDate.month,
+    selectedDate.day,
+    endTime.hour,
+    endTime.minute,
+  );
 
   Future<void> pickDate() async {
     final value = await showDatePicker(
@@ -106,6 +108,15 @@ class _NewJobScreenState extends State<NewJobScreen> {
 
   void save() {
     if (!(formKey.currentState?.validate() ?? false)) return;
+    final client = selectedClient;
+    if (client == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Prvo dodaj i odaberi klijenta za ovaj posao.'),
+        ),
+      );
+      return;
+    }
     if (!scheduledEnd.isAfter(scheduledStart)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -118,17 +129,15 @@ class _NewJobScreenState extends State<NewJobScreen> {
     widget.state.addJob(
       WorkJob(
         title: title.text.trim(),
-        client: selectedClient,
+        client: client,
         location: location.text.trim(),
         scheduledStart: scheduledStart,
         scheduledEnd: scheduledEnd,
         status: JobStatus.planned,
         description: description.text.trim(),
         priority: priority,
-        assignedMemberId:
-            assignedMemberId.isEmpty ? null : assignedMemberId,
-        assignedMemberName:
-            widget.state.teamMemberById(assignedMemberId)?.name,
+        assignedMemberId: assignedMemberId.isEmpty ? null : assignedMemberId,
+        assignedMemberName: widget.state.teamMemberById(assignedMemberId)?.name,
       ),
     );
     Navigator.pop(context);
@@ -150,12 +159,34 @@ class _NewJobScreenState extends State<NewJobScreen> {
                 labelText: "Naziv posla *",
                 prefixIcon: Icon(Icons.edit_note_rounded),
               ),
-              validator: (value) =>
-                  value == null || value.trim().length < 2
-                      ? 'Unesi naziv posla.'
-                      : null,
+              validator: (value) => value == null || value.trim().length < 2
+                  ? 'Unesi naziv posla.'
+                  : null,
             ),
             const SizedBox(height: 12),
+            if (widget.state.clients.isEmpty) ...[
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.person_add_alt_1_rounded,
+                        color: WorklogColors.cyan,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Nema spremljenih klijenata. Prvo dodaj klijenta u kartici Klijenti, a zatim izradi posao.',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             DropdownButtonFormField<Client>(
               initialValue: selectedClient,
               decoration: const InputDecoration(
@@ -170,8 +201,9 @@ class _NewJobScreenState extends State<NewJobScreen> {
                     ),
                   )
                   .toList(),
-              onChanged: (client) =>
-                  setState(() => selectedClient = client ?? selectedClient),
+              onChanged: (client) => setState(() => selectedClient = client),
+              validator: (client) =>
+                  client == null ? 'Odaberi klijenta.' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -180,10 +212,9 @@ class _NewJobScreenState extends State<NewJobScreen> {
                 labelText: "Lokacija *",
                 prefixIcon: Icon(Icons.location_on_outlined),
               ),
-              validator: (value) =>
-                  value == null || value.trim().length < 2
-                      ? 'Unesi lokaciju posla.'
-                      : null,
+              validator: (value) => value == null || value.trim().length < 2
+                  ? 'Unesi lokaciju posla.'
+                  : null,
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -202,10 +233,9 @@ class _NewJobScreenState extends State<NewJobScreen> {
                     onPressed: pickStartTime,
                     icon: const Icon(Icons.schedule_rounded),
                     label: Text(
-                      MaterialLocalizations.of(context).formatTimeOfDay(
-                        startTime,
-                        alwaysUse24HourFormat: true,
-                      ),
+                      MaterialLocalizations.of(
+                        context,
+                      ).formatTimeOfDay(startTime, alwaysUse24HourFormat: true),
                     ),
                   ),
                 ),
@@ -215,10 +245,9 @@ class _NewJobScreenState extends State<NewJobScreen> {
                     onPressed: pickEndTime,
                     icon: const Icon(Icons.schedule_send_rounded),
                     label: Text(
-                      MaterialLocalizations.of(context).formatTimeOfDay(
-                        endTime,
-                        alwaysUse24HourFormat: true,
-                      ),
+                      MaterialLocalizations.of(
+                        context,
+                      ).formatTimeOfDay(endTime, alwaysUse24HourFormat: true),
                     ),
                   ),
                 ),
@@ -245,9 +274,8 @@ class _NewJobScreenState extends State<NewJobScreen> {
                       ),
                     ),
               ],
-              onChanged: (value) => setState(
-                () => assignedMemberId = value ?? "",
-              ),
+              onChanged: (value) =>
+                  setState(() => assignedMemberId = value ?? ""),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -262,10 +290,8 @@ class _NewJobScreenState extends State<NewJobScreen> {
               decoration: const InputDecoration(labelText: "Prioritet"),
               items: ["Niski", "Srednji", "Visoki"]
                   .map(
-                    (value) => DropdownMenuItem(
-                      value: value,
-                      child: Text(value),
-                    ),
+                    (value) =>
+                        DropdownMenuItem(value: value, child: Text(value)),
                   )
                   .toList(),
               onChanged: (value) =>
@@ -275,7 +301,7 @@ class _NewJobScreenState extends State<NewJobScreen> {
             SizedBox(
               height: 52,
               child: FilledButton.icon(
-                onPressed: save,
+                onPressed: selectedClient == null ? null : save,
                 icon: const Icon(Icons.save_outlined),
                 label: const Text("Spremi posao"),
               ),
@@ -288,11 +314,7 @@ class _NewJobScreenState extends State<NewJobScreen> {
 }
 
 class JobEditorScreen extends StatefulWidget {
-  const JobEditorScreen({
-    super.key,
-    required this.state,
-    required this.job,
-  });
+  const JobEditorScreen({super.key, required this.state, required this.job});
 
   final AppState state;
   final WorkJob job;
@@ -327,10 +349,9 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
     selectedClient = job.client;
     priority = job.priority;
     status = job.status;
-    assignedMemberId =
-        widget.state.teamMemberById(job.assignedMemberId) == null
-            ? ""
-            : job.assignedMemberId ?? "";
+    assignedMemberId = widget.state.teamMemberById(job.assignedMemberId) == null
+        ? ""
+        : job.assignedMemberId ?? "";
     selectedDate = DateTime(start.year, start.month, start.day);
     startTime = TimeOfDay.fromDateTime(start);
     endTime = TimeOfDay.fromDateTime(end);
@@ -345,20 +366,20 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
   }
 
   DateTime get scheduledStart => DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        startTime.hour,
-        startTime.minute,
-      );
+    selectedDate.year,
+    selectedDate.month,
+    selectedDate.day,
+    startTime.hour,
+    startTime.minute,
+  );
 
   DateTime get scheduledEnd => DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        endTime.hour,
-        endTime.minute,
-      );
+    selectedDate.year,
+    selectedDate.month,
+    selectedDate.day,
+    endTime.hour,
+    endTime.minute,
+  );
 
   Future<void> pickDate() async {
     final value = await showDatePicker(
@@ -405,10 +426,10 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
     job.description = description.text.trim();
     job.priority = priority;
     job.status = status;
-    job.assignedMemberId =
-        assignedMemberId.isEmpty ? null : assignedMemberId;
-    job.assignedMemberName =
-        widget.state.teamMemberById(assignedMemberId)?.name;
+    job.assignedMemberId = assignedMemberId.isEmpty ? null : assignedMemberId;
+    job.assignedMemberName = widget.state
+        .teamMemberById(assignedMemberId)
+        ?.name;
     job.setSchedule(scheduledStart, scheduledEnd);
 
     widget.state.updateJob(
@@ -434,10 +455,9 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
             TextFormField(
               controller: title,
               decoration: const InputDecoration(labelText: 'Naziv posla *'),
-              validator: (value) =>
-                  value == null || value.trim().length < 2
-                      ? 'Unesi naziv posla.'
-                      : null,
+              validator: (value) => value == null || value.trim().length < 2
+                  ? 'Unesi naziv posla.'
+                  : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<Client>(
@@ -458,10 +478,9 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
             TextFormField(
               controller: location,
               decoration: const InputDecoration(labelText: 'Lokacija *'),
-              validator: (value) =>
-                  value == null || value.trim().length < 2
-                      ? 'Unesi lokaciju posla.'
-                      : null,
+              validator: (value) => value == null || value.trim().length < 2
+                  ? 'Unesi lokaciju posla.'
+                  : null,
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -480,10 +499,9 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
                     onPressed: () => pickTime(start: true),
                     icon: const Icon(Icons.schedule_rounded),
                     label: Text(
-                      MaterialLocalizations.of(context).formatTimeOfDay(
-                        startTime,
-                        alwaysUse24HourFormat: true,
-                      ),
+                      MaterialLocalizations.of(
+                        context,
+                      ).formatTimeOfDay(startTime, alwaysUse24HourFormat: true),
                     ),
                   ),
                 ),
@@ -493,10 +511,9 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
                     onPressed: () => pickTime(start: false),
                     icon: const Icon(Icons.schedule_send_rounded),
                     label: Text(
-                      MaterialLocalizations.of(context).formatTimeOfDay(
-                        endTime,
-                        alwaysUse24HourFormat: true,
-                      ),
+                      MaterialLocalizations.of(
+                        context,
+                      ).formatTimeOfDay(endTime, alwaysUse24HourFormat: true),
                     ),
                   ),
                 ),
@@ -510,13 +527,7 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
                   .map(
                     (value) => DropdownMenuItem(
                       value: value,
-                      child: Text(
-                        switch (value) {
-                          JobStatus.planned => 'Planirano',
-                          JobStatus.active => 'U tijeku',
-                          JobStatus.completed => 'Završeno',
-                        },
-                      ),
+                      child: Text(value.label),
                     ),
                   )
                   .toList(),
@@ -525,9 +536,7 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: assignedMemberId,
-              decoration: const InputDecoration(
-                labelText: 'Terenski tehničar',
-              ),
+              decoration: const InputDecoration(labelText: 'Terenski tehničar'),
               items: [
                 const DropdownMenuItem(
                   value: '',
@@ -540,9 +549,8 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
                   ),
                 ),
               ],
-              onChanged: (value) => setState(
-                () => assignedMemberId = value ?? assignedMemberId,
-              ),
+              onChanged: (value) =>
+                  setState(() => assignedMemberId = value ?? assignedMemberId),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
@@ -550,10 +558,8 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
               decoration: const InputDecoration(labelText: 'Prioritet'),
               items: ['Niski', 'Srednji', 'Visoki']
                   .map(
-                    (value) => DropdownMenuItem(
-                      value: value,
-                      child: Text(value),
-                    ),
+                    (value) =>
+                        DropdownMenuItem(value: value, child: Text(value)),
                   )
                   .toList(),
               onChanged: (value) =>
@@ -583,11 +589,7 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
 }
 
 class JobDetailScreen extends StatefulWidget {
-  const JobDetailScreen({
-    super.key,
-    required this.state,
-    required this.job,
-  });
+  const JobDetailScreen({super.key, required this.state, required this.job});
 
   final AppState state;
   final WorkJob job;
@@ -601,10 +603,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => JobEditorScreen(
-          state: widget.state,
-          job: widget.job,
-        ),
+        builder: (_) => JobEditorScreen(state: widget.state, job: widget.job),
       ),
     );
     if (mounted) setState(() {});
@@ -646,7 +645,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           ),
           InfoTile(
             icon: Icons.engineering_outlined,
-            title: state.teamMemberById(job.assignedMemberId)?.name ??
+            title:
+                state.teamMemberById(job.assignedMemberId)?.name ??
                 job.assignedMemberName ??
                 "Nije dodijeljeno",
             subtitle: "Terenski tehničar",
@@ -732,10 +732,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => TimeTrackingScreen(
-                      state: state,
-                      job: job,
-                    ),
+                    builder: (_) => TimeTrackingScreen(state: state, job: job),
                   ),
                 ),
               ),
@@ -746,10 +743,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => MaterialsScreen(
-                      state: state,
-                      job: job,
-                    ),
+                    builder: (_) => MaterialsScreen(state: state, job: job),
                   ),
                 ),
               ),
@@ -760,10 +754,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => NotesScreen(
-                      state: state,
-                      job: job,
-                    ),
+                    builder: (_) => NotesScreen(state: state, job: job),
                   ),
                 ),
               ),
@@ -774,10 +765,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => BeforeAfterScreen(
-                      state: state,
-                      job: job,
-                    ),
+                    builder: (_) => BeforeAfterScreen(state: state, job: job),
                   ),
                 ),
               ),
@@ -790,10 +778,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => CompletionFlowScreen(
-                    state: state,
-                    job: job,
-                  ),
+                  builder: (_) => CompletionFlowScreen(state: state, job: job),
                 ),
               ),
               icon: const Icon(Icons.check_circle_outline_rounded),
@@ -806,14 +791,17 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   static void _toast(BuildContext context, String text) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 }
 
 class InfoTile extends StatelessWidget {
-  const InfoTile({super.key, required this.icon, required this.title, required this.subtitle});
+  const InfoTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
   final IconData icon;
   final String title;
   final String subtitle;
@@ -833,7 +821,13 @@ class InfoTile extends StatelessWidget {
 }
 
 class ActionButton extends StatelessWidget {
-  const ActionButton({super.key, required this.icon, required this.label, required this.color, required this.onTap});
+  const ActionButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
   final IconData icon;
   final String label;
   final Color color;
@@ -841,12 +835,17 @@ class ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(onPressed: onTap, icon: Icon(icon, color: color), label: Text(label, textAlign: TextAlign.center));
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, color: color),
+      label: Text(label, textAlign: TextAlign.center),
+    );
   }
 }
 
 class TimeTrackingScreen extends StatefulWidget {
   const TimeTrackingScreen({super.key, required this.state, required this.job});
+
   final AppState state;
   final WorkJob job;
 
@@ -855,38 +854,43 @@ class TimeTrackingScreen extends StatefulWidget {
 }
 
 class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
-  Timer? timer;
-  int seconds = 0;
-  bool running = false;
+  Timer? ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTicker();
+  }
 
   @override
   void dispose() {
-    timer?.cancel();
+    ticker?.cancel();
     super.dispose();
   }
 
+  void _syncTicker() {
+    ticker?.cancel();
+    ticker = null;
+    if (!widget.job.timerRunning) return;
+    ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
   Future<void> toggle() async {
-    if (running) {
-      timer?.cancel();
-      setState(() => running = false);
+    if (widget.job.timerRunning) {
+      widget.state.pauseJobTimer(widget.job);
+      _syncTicker();
+      if (mounted) setState(() {});
       return;
     }
 
     final wasPlanned = widget.job.status == JobStatus.planned;
-    if (wasPlanned) {
-      widget.job.status = JobStatus.active;
-      widget.state.updateJob(
-        activityTitle: 'Posao pokrenut',
-        activitySubtitle:
-            '${widget.job.title} • ${widget.job.client.name}',
-      );
-    }
+    final started = widget.state.startJobTimer(widget.job);
+    if (!started) return;
 
-    timer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => setState(() => seconds++),
-    );
-    setState(() => running = true);
+    _syncTicker();
+    if (mounted) setState(() {});
 
     if (wasPlanned && widget.state.preferences.notificationsEnabled) {
       try {
@@ -895,22 +899,107 @@ class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
           clientName: widget.job.client.name,
         );
       } catch (_) {
-        // Timer mora nastaviti raditi čak i ako OS odbije obavijest.
+        // Mjerenje mora nastaviti raditi čak i ako OS odbije obavijest.
       }
     }
   }
 
+  void stop() {
+    if (!widget.state.stopJobTimer(widget.job)) return;
+    _syncTicker();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> adjustTime() async {
+    final minutesController = TextEditingController();
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Ručna korekcija vremena'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: minutesController,
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
+              decoration: const InputDecoration(
+                labelText: 'Minute (+ ili -)',
+                hintText: 'npr. 15 ili -10',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Razlog korekcije'),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Odustani'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Spremi korekciju'),
+          ),
+        ],
+      ),
+    );
+
+    final minutes = int.tryParse(minutesController.text.trim());
+    final reason = reasonController.text.trim();
+    minutesController.dispose();
+    reasonController.dispose();
+
+    if (confirmed != true ||
+        minutes == null ||
+        minutes == 0 ||
+        reason.isEmpty) {
+      return;
+    }
+
+    final updated = widget.state.adjustJobTime(
+      widget.job,
+      minutes: minutes,
+      reason: reason,
+    );
+    if (!updated || !mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Korekcija vremena je spremljena.')),
+    );
+  }
+
   String get formatted {
+    final seconds = widget.job.workedSeconds();
     final h = seconds ~/ 3600;
     final m = (seconds % 3600) ~/ 60;
     final s = seconds % 60;
-    return [h, m, s].map((value) => value.toString().padLeft(2, "0")).join(":");
+    return [h, m, s].map((value) => value.toString().padLeft(2, '0')).join(':');
+  }
+
+  String _durationForEntry(WorkTimeEntry entry) {
+    final seconds = entry.elapsedSeconds();
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final remainder = seconds % 60;
+    if (hours > 0) return '$hours h $minutes min';
+    if (minutes > 0) return '$minutes min $remainder s';
+    return '$remainder s';
   }
 
   @override
   Widget build(BuildContext context) {
+    final running = widget.job.timerRunning;
+    final entries = widget.job.timeEntries.reversed.toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Evidencija vremena")),
+      appBar: AppBar(title: const Text('Evidencija vremena')),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
@@ -919,39 +1008,106 @@ class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
               padding: const EdgeInsets.all(22),
               child: Column(
                 children: [
-                  Text(widget.job.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(
+                    widget.job.title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 18),
-                  Text(formatted, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                  Text(running ? "Rad u tijeku" : "Nije pokrenuto", style: TextStyle(color: running ? WorklogColors.success : WorklogColors.muted)),
+                  Text(
+                    formatted,
+                    style: const TextStyle(
+                      fontSize: 46,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    running
+                        ? 'Rad u tijeku'
+                        : widget.job.status == JobStatus.paused
+                        ? 'Mjerenje je pauzirano'
+                        : 'Mjerenje nije aktivno',
+                    style: TextStyle(
+                      color: running
+                          ? WorklogColors.success
+                          : WorklogColors.muted,
+                    ),
+                  ),
                   const SizedBox(height: 22),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      FloatingActionButton.large(heroTag: "timer", onPressed: toggle, child: Icon(running ? Icons.pause_rounded : Icons.play_arrow_rounded)),
+                      FloatingActionButton.large(
+                        heroTag: 'timer',
+                        onPressed: toggle,
+                        child: Icon(
+                          running
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                        ),
+                      ),
                       const SizedBox(width: 18),
                       FloatingActionButton.large(
-                        heroTag: "stop",
+                        heroTag: 'stop',
                         backgroundColor: WorklogColors.danger,
-                        onPressed: () {
-                          timer?.cancel();
-                          setState(() => running = false);
-                          widget.job.minutesWorked += (seconds / 60).ceil();
-                          widget.job.status = JobStatus.active;
-                          widget.state.updateJob();
-                        },
+                        onPressed: running ? stop : null,
                         child: const Icon(Icons.stop_rounded),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: adjustTime,
+                    icon: const Icon(Icons.more_time_rounded),
+                    label: const Text('Ručna korekcija'),
                   ),
                 ],
               ),
             ),
           ),
-          const SectionTitle("Danas"),
-          const TimelineEntry(title: "Dolazak na lokaciju", time: "08:00 – 08:15", duration: "15 min", color: WorklogColors.success),
-          const TimelineEntry(title: "Rad na uređaju", time: "08:15 – 10:30", duration: "2 h 15 min", color: WorklogColors.primary),
-          const TimelineEntry(title: "Pauza", time: "10:30 – 10:45", duration: "15 min", color: WorklogColors.muted),
-          const TimelineEntry(title: "Nastavak rada", time: "10:45 – 11:50", duration: "1 h 5 min", color: WorklogColors.success),
+          const SectionTitle('Intervali rada'),
+          if (entries.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Još nema evidentiranih intervala rada.',
+                  style: TextStyle(color: WorklogColors.muted),
+                ),
+              ),
+            )
+          else
+            ...entries.map(
+              (entry) => TimelineEntry(
+                title: entry.isRunning ? 'Rad u tijeku' : 'Radni interval',
+                time:
+                    '${formatClock(entry.startedAt)} – ${entry.endedAt == null ? 'u tijeku' : formatClock(entry.endedAt!)}',
+                duration: _durationForEntry(entry),
+                color: entry.isRunning
+                    ? WorklogColors.success
+                    : WorklogColors.primary,
+              ),
+            ),
+          if (widget.job.manualAdjustmentMinutes != 0) ...[
+            const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: const Icon(
+                  Icons.tune_rounded,
+                  color: WorklogColors.cyan,
+                ),
+                title: Text(
+                  'Ručna korekcija: ${widget.job.manualAdjustmentMinutes > 0 ? '+' : ''}${widget.job.manualAdjustmentMinutes} min',
+                ),
+                subtitle: Text(
+                  widget.job.manualAdjustmentReason.isEmpty
+                      ? 'Razlog nije naveden'
+                      : widget.job.manualAdjustmentReason,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -959,7 +1115,13 @@ class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
 }
 
 class TimelineEntry extends StatelessWidget {
-  const TimelineEntry({super.key, required this.title, required this.time, required this.duration, required this.color});
+  const TimelineEntry({
+    super.key,
+    required this.title,
+    required this.time,
+    required this.duration,
+    required this.color,
+  });
   final String title;
   final String time;
   final String duration;
@@ -971,7 +1133,10 @@ class TimelineEntry extends StatelessWidget {
       leading: Icon(Icons.circle, color: color, size: 13),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(time),
-      trailing: Text(duration, style: const TextStyle(color: WorklogColors.muted)),
+      trailing: Text(
+        duration,
+        style: const TextStyle(color: WorklogColors.muted),
+      ),
     );
   }
 }
@@ -988,33 +1153,67 @@ class MaterialsScreen extends StatefulWidget {
 class _MaterialsScreenState extends State<MaterialsScreen> {
   @override
   Widget build(BuildContext context) {
-    final total = widget.job.materials.fold<double>(0, (sum, item) => sum + item.price);
+    final total = widget.job.materials.fold<double>(
+      0,
+      (sum, item) => sum + item.price,
+    );
     return Scaffold(
-      appBar: AppBar(title: const Text("Materijal"), actions: [IconButton(onPressed: _add, icon: const Icon(Icons.add_circle_outline_rounded))]),
+      appBar: AppBar(
+        title: const Text("Materijal"),
+        actions: [
+          IconButton(
+            onPressed: _add,
+            icon: const Icon(Icons.add_circle_outline_rounded),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
           ...widget.job.materials.map(
             (item) => Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.inventory_2_outlined)),
-                title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                leading: const CircleAvatar(
+                  child: Icon(Icons.inventory_2_outlined),
+                ),
+                title: Text(
+                  item.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 subtitle: Text(item.quantity),
-                trailing: Text("${item.price.toStringAsFixed(2).replaceAll(".", ",")} €"),
+                trailing: Text(
+                  "${item.price.toStringAsFixed(2).replaceAll(".", ",")} €",
+                ),
               ),
             ),
           ),
           const SizedBox(height: 14),
-          SizedBox(height: 50, child: FilledButton.icon(onPressed: _add, icon: const Icon(Icons.add), label: const Text("Dodaj stavku"))),
+          SizedBox(
+            height: 50,
+            child: FilledButton.icon(
+              onPressed: _add,
+              icon: const Icon(Icons.add),
+              label: const Text("Dodaj stavku"),
+            ),
+          ),
           const SizedBox(height: 18),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(18),
               child: Row(
                 children: [
-                  const Text("Ukupna vrijednost", style: TextStyle(color: WorklogColors.muted)),
+                  const Text(
+                    "Ukupna vrijednost",
+                    style: TextStyle(color: WorklogColors.muted),
+                  ),
                   const Spacer(),
-                  Text("${total.toStringAsFixed(2).replaceAll(".", ",")} €", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                  Text(
+                    "${total.toStringAsFixed(2).replaceAll(".", ",")} €",
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1032,17 +1231,35 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
       context: context,
       isScrollControlled: true,
       builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(18, 18, 18, MediaQuery.of(context).viewInsets.bottom + 18),
+        padding: EdgeInsets.fromLTRB(
+          18,
+          18,
+          18,
+          MediaQuery.of(context).viewInsets.bottom + 18,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Nova stavka materijala", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const Text(
+              "Nova stavka materijala",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 16),
-            TextField(controller: name, decoration: const InputDecoration(labelText: "Naziv")),
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: "Naziv"),
+            ),
             const SizedBox(height: 10),
-            TextField(controller: quantity, decoration: const InputDecoration(labelText: "Količina")),
+            TextField(
+              controller: quantity,
+              decoration: const InputDecoration(labelText: "Količina"),
+            ),
             const SizedBox(height: 10),
-            TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Cijena (€)")),
+            TextField(
+              controller: price,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: "Cijena (€)"),
+            ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -1051,9 +1268,13 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                   setState(() {
                     widget.job.materials.add(
                       MaterialItem(
-                        name: name.text.trim().isEmpty ? "Materijal" : name.text.trim(),
+                        name: name.text.trim().isEmpty
+                            ? "Materijal"
+                            : name.text.trim(),
                         quantity: quantity.text.trim(),
-                        price: double.tryParse(price.text.replaceAll(",", ".")) ?? 0,
+                        price:
+                            double.tryParse(price.text.replaceAll(",", ".")) ??
+                            0,
                       ),
                     );
                   });
@@ -1091,7 +1312,14 @@ class _NotesScreenState extends State<NotesScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: TextField(controller: note, decoration: const InputDecoration(hintText: "Dodaj bilješku..."))),
+              Expanded(
+                child: TextField(
+                  controller: note,
+                  decoration: const InputDecoration(
+                    hintText: "Dodaj bilješku...",
+                  ),
+                ),
+              ),
               const SizedBox(width: 8),
               IconButton.filled(
                 onPressed: () {
@@ -1111,18 +1339,43 @@ class _NotesScreenState extends State<NotesScreen> {
           const CheckRow("Provjeriti električne spojeve", false),
           const CheckRow("Testirati rad uređaja", false),
           const SectionTitle("Bilješke"),
-          if (widget.job.notes.isEmpty) const Text("Još nema bilješki.", style: TextStyle(color: WorklogColors.muted)),
-          ...widget.job.notes.map((item) => Card(child: ListTile(leading: const Icon(Icons.note_alt_outlined), title: Text(item)))),
+          if (widget.job.notes.isEmpty)
+            const Text(
+              "Još nema bilješki.",
+              style: TextStyle(color: WorklogColors.muted),
+            ),
+          ...widget.job.notes.map(
+            (item) => Card(
+              child: ListTile(
+                leading: const Icon(Icons.note_alt_outlined),
+                title: Text(item),
+              ),
+            ),
+          ),
           const SectionTitle("Fotografije s terena"),
           const Row(
             children: [
-              Expanded(child: PhotoPlaceholder(icon: Icons.ac_unit_rounded, label: "Vanjska jedinica")),
+              Expanded(
+                child: PhotoPlaceholder(
+                  icon: Icons.ac_unit_rounded,
+                  label: "Vanjska jedinica",
+                ),
+              ),
               SizedBox(width: 10),
-              Expanded(child: PhotoPlaceholder(icon: Icons.handyman_rounded, label: "Radovi")),
+              Expanded(
+                child: PhotoPlaceholder(
+                  icon: Icons.handyman_rounded,
+                  label: "Radovi",
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
-          OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.mic_none_rounded), label: const Text("Snimi glasovnu bilješku")),
+          OutlinedButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.mic_none_rounded),
+            label: const Text("Snimi glasovnu bilješku"),
+          ),
         ],
       ),
     );
@@ -1153,11 +1406,7 @@ class _CheckRowState extends State<CheckRow> {
 }
 
 class BeforeAfterScreen extends StatelessWidget {
-  const BeforeAfterScreen({
-    super.key,
-    required this.state,
-    required this.job,
-  });
+  const BeforeAfterScreen({super.key, required this.state, required this.job});
 
   final AppState state;
   final WorkJob job;
@@ -1266,8 +1515,9 @@ class _JobPhotoManagerState extends State<JobPhotoManager> {
 
   void _remove(bool before, String path) {
     setState(() {
-      final list =
-          before ? widget.job.beforePhotoPaths : widget.job.afterPhotoPaths;
+      final list = before
+          ? widget.job.beforePhotoPaths
+          : widget.job.afterPhotoPaths;
       list.remove(path);
     });
     widget.state.updateJob();
@@ -1327,7 +1577,10 @@ class PhotoSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 4),
         Text(subtitle, style: const TextStyle(color: WorklogColors.muted)),
         const SizedBox(height: 12),
@@ -1370,7 +1623,10 @@ class PhotoSection extends StatelessWidget {
                       top: 6,
                       child: IconButton.filledTonal(
                         onPressed: () => onRemove(path),
-                        icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ],
@@ -1398,11 +1654,7 @@ class PhotoSection extends StatelessWidget {
 }
 
 class PhotoPlaceholder extends StatelessWidget {
-  const PhotoPlaceholder({
-    super.key,
-    required this.icon,
-    required this.label,
-  });
+  const PhotoPlaceholder({super.key, required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -1432,7 +1684,10 @@ class PhotoPlaceholder extends StatelessWidget {
               ),
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -1482,20 +1737,18 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
     if (storage == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Pohrana uređaja nije dostupna."),
-        ),
+        const SnackBar(content: Text("Pohrana uređaja nije dostupna.")),
       );
       return;
     }
 
     setState(() => processing = true);
     try {
+      widget.job.pauseTimer();
       widget.job.status = JobStatus.completed;
       widget.state.updateJob(
         activityTitle: 'Posao završen',
-        activitySubtitle:
-            '${widget.job.title} • ${widget.job.client.name}',
+        activitySubtitle: '${widget.job.title} • ${widget.job.client.name}',
       );
       final file = await PdfReportService(storage).generate(widget.job);
       await widget.state.persistNow();
@@ -1513,9 +1766,7 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("PDF zapisnik nije moguće izraditi: $error"),
-        ),
+        SnackBar(content: Text("PDF zapisnik nije moguće izraditi: $error")),
       );
     } finally {
       if (mounted) setState(() => processing = false);
@@ -1544,10 +1795,7 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: (value) => setState(() => step = value),
               children: [
-                JobPhotoManager(
-                  state: widget.state,
-                  job: widget.job,
-                ),
+                JobPhotoManager(state: widget.state, job: widget.job),
                 SignatureStep(
                   key: signatureKey,
                   state: widget.state,
@@ -1573,9 +1821,7 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : Text(
-                        step == 3 ? "Generiraj PDF zapisnik" : "Dalje",
-                      ),
+                    : Text(step == 3 ? "Generiraj PDF zapisnik" : "Dalje"),
               ),
             ),
           ),
@@ -1586,11 +1832,7 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
 }
 
 class SignatureStep extends StatefulWidget {
-  const SignatureStep({
-    super.key,
-    required this.state,
-    required this.job,
-  });
+  const SignatureStep({super.key, required this.state, required this.job});
 
   final AppState state;
   final WorkJob job;
@@ -1756,7 +1998,7 @@ class ReportPreviewStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final minutes = math.max(job.minutesWorked, 270);
+    final minutes = job.totalWorkedMinutes;
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
@@ -1792,15 +2034,18 @@ class ReportPreviewStep extends StatelessWidget {
                   ["Materijal", "Nije evidentiran"],
                 ]
               : job.materials
-                  .map((item) => [item.name, item.quantity])
-                  .toList(),
+                    .map((item) => [item.name, item.quantity])
+                    .toList(),
         ),
         ReportBlock(
           title: "Dokaz rada",
           rows: [
             ["Fotografije prije", job.beforePhotoPaths.length.toString()],
             ["Fotografije poslije", job.afterPhotoPaths.length.toString()],
-            ["Potpis klijenta", job.signaturePath == null ? "Nije spremljen" : "Spremljen"],
+            [
+              "Potpis klijenta",
+              job.signaturePath == null ? "Nije spremljen" : "Spremljen",
+            ],
           ],
         ),
       ],
@@ -1809,11 +2054,7 @@ class ReportPreviewStep extends StatelessWidget {
 }
 
 class ReportBlock extends StatelessWidget {
-  const ReportBlock({
-    super.key,
-    required this.title,
-    required this.rows,
-  });
+  const ReportBlock({super.key, required this.title, required this.rows});
 
   final String title;
   final List<List<String>> rows;
@@ -1954,18 +2195,15 @@ class _SendReportScreenState extends State<SendReportScreen> {
       final file = await _ensureReport();
       if (file == null || !mounted || !shareContext.mounted) return;
 
-      final result = await PdfReportService(storage).share(
-        shareContext,
-        file,
-        widget.job,
-      );
+      final result = await PdfReportService(
+        storage,
+      ).share(shareContext, file, widget.job);
 
       if (result.status == ShareResultStatus.success) {
         widget.job.reportSent = true;
         widget.state.updateJob(
           activityTitle: 'Zapisnik podijeljen',
-          activitySubtitle:
-              '${widget.job.title} • ${widget.job.client.name}',
+          activitySubtitle: '${widget.job.title} • ${widget.job.client.name}',
           kind: 'report',
         );
         await widget.state.persistNow();
@@ -2037,13 +2275,15 @@ class _SendReportScreenState extends State<SendReportScreen> {
                 ShareTile(
                   icon: Icons.ios_share_rounded,
                   title: "Podijeli zapisnik",
-                  subtitle: "Otvori sustavni izbornik za e-poštu, WhatsApp i druge aplikacije.",
+                  subtitle:
+                      "Otvori sustavni izbornik za e-poštu, WhatsApp i druge aplikacije.",
                   onTap: busy ? () {} : () => _share(shareContext),
                 ),
                 ShareTile(
                   icon: Icons.mail_outline_rounded,
                   title: "E-pošta",
-                  subtitle: "PDF možeš odabrati u sustavnom izborniku dijeljenja.",
+                  subtitle:
+                      "PDF možeš odabrati u sustavnom izborniku dijeljenja.",
                   onTap: busy ? () {} : () => _share(shareContext),
                 ),
                 ShareTile(
@@ -2098,7 +2338,13 @@ class _SendReportScreenState extends State<SendReportScreen> {
 }
 
 class ShareTile extends StatelessWidget {
-  const ShareTile({super.key, required this.icon, required this.title, required this.subtitle, required this.onTap});
+  const ShareTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
   final IconData icon;
   final String title;
   final String subtitle;

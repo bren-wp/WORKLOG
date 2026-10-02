@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Analiza i testovi
+    name: Format, analiza i testovi
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,13 +29,15 @@ jobs:
         run: python3 tool/configure_platforms.py
       - name: Dohvati pakete
         run: flutter pub get
+      - name: Provjeri format
+        run: dart format --output=none --set-exit-if-changed lib test
       - name: Analiza
         run: flutter analyze
       - name: Testovi
         run: flutter test
 
   android:
-    name: Android produkcijski APK
+    name: Android produkcijski APK i AAB
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,15 +48,29 @@ jobs:
       - run: flutter create --org com.brendigo --project-name worklog --platforms android,ios .
       - run: python3 tool/configure_platforms.py
       - run: flutter pub get
-      - run: flutter build apk --release
+      - name: Izgradi APK
+        run: flutter build apk --release
+      - name: Izgradi AAB
+        run: flutter build appbundle --release
+      - name: Pripremi i provjeri artefakte
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+          mkdir -p artifacts/android
+          cp build/app/outputs/flutter-apk/app-release.apk "artifacts/android/WORKLOG-v${VERSION}-Android.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "artifacts/android/WORKLOG-v${VERSION}-Android.aab"
+          test -s "artifacts/android/WORKLOG-v${VERSION}-Android.apk"
+          test -s "artifacts/android/WORKLOG-v${VERSION}-Android.aab"
+          sha256sum artifacts/android/* > artifacts/android/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: WORKLOG-Android
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: artifacts/android/*
           if-no-files-found: error
 
   ios:
-    name: iOS produkcijski build
+    name: iOS produkcijski build bez codesigna
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,4 +81,20 @@ jobs:
       - run: flutter create --org com.brendigo --project-name worklog --platforms android,ios .
       - run: python3 tool/configure_platforms.py
       - run: flutter pub get
-      - run: flutter build ios --release --no-codesign
+      - name: Izgradi iOS release
+        run: flutter build ios --release --no-codesign
+      - name: Pripremi i provjeri iOS artefakt
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+          test -d build/ios/iphoneos/Runner.app
+          mkdir -p artifacts/ios
+          tar -czf "artifacts/ios/WORKLOG-v${VERSION}-iOS-no-codesign.tar.gz" -C build/ios/iphoneos Runner.app
+          test -s "artifacts/ios/WORKLOG-v${VERSION}-iOS-no-codesign.tar.gz"
+          shasum -a 256 artifacts/ios/* > artifacts/ios/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WORKLOG-iOS-no-codesign
+          path: artifacts/ios/*
+          if-no-files-found: error

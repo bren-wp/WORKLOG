@@ -6,7 +6,7 @@
 
 ## Status
 
-Aktivni razvoj: **0.6.0**. Projekt je izgrađen u Flutteru s jednim kodom za Android i iOS. Cijelo korisničko sučelje je na hrvatskom i vizualno prati odobreni WORKLOG branding.
+Aktivni razvoj: **0.7.0**. Projekt je izgrađen u Flutteru s jednim kodom za Android i iOS. Cijelo korisničko sučelje je na hrvatskom i vizualno prati odobreni WORKLOG branding.
 
 ## Pokretanje
 
@@ -39,7 +39,7 @@ flutter run
 - stvarni dnevnik aktivnosti i nepročitanih događaja
 - Novi posao
 - Detalj posla
-- Evidencija vremena
+- Evidencija vremena s trajnim intervalima, pauzom/nastavkom i ručnom korekcijom s razlogom
 - Materijal i troškovi
 - Bilješke i kontrolna lista
 - Fotografije prije/poslije
@@ -65,10 +65,14 @@ Vizualni identitet: [docs/BRAND.md](docs/BRAND.md)
 
 GitHub Actions na svakoj promjeni izvršava:
 
+- `dart format --output=none --set-exit-if-changed lib test`
 - `flutter analyze`
 - `flutter test`
 - Android release APK build
+- Android release AAB build
+- provjeru postojanja i SHA-256 checksumova Android artefakata
 - iOS release build bez potpisivanja
+- provjeru i upload no-codesign iOS artefakta
 
 ## Branding
 

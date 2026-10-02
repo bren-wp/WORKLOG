@@ -6,9 +6,7 @@ import 'models.dart';
 import 'services/local_storage_service.dart';
 
 class AppState extends ChangeNotifier {
-  AppState({this.storage}) {
-    _seed();
-  }
+  AppState({this.storage});
 
   final LocalStorageService? storage;
   final List<Client> clients = [];
@@ -24,130 +22,6 @@ class AppState extends ChangeNotifier {
   bool onboardingComplete = false;
   bool loggedIn = false;
   bool profileReady = false;
-
-  void _seed() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    DateTime at(int dayOffset, int hour, int minute) =>
-        today.add(Duration(days: dayOffset, hours: hour, minutes: minute));
-
-    final ivica = Client(
-      id: 'client-ivica',
-      name: "Ivica Horvat",
-      type: "Privatna osoba",
-      phone: "091 123 4567",
-      email: "ivica.horvat@example.com",
-      address: "Zagreb, Trešnjevka",
-    );
-    final marija = Client(
-      id: 'client-marija',
-      name: "Marija Kovač",
-      type: "Privatna osoba",
-      phone: "091 987 6543",
-      email: "marija.kovac@example.com",
-      address: "Zagreb, Maksimir",
-    );
-    final korzo = Client(
-      id: 'client-korzo',
-      name: "Restoran Korzo",
-      type: "Tvrtka",
-      phone: "091 555 1234",
-      email: "ured@korzo.example.com",
-      address: "Zagreb, Centar",
-    );
-    final goran = Client(
-      id: 'client-goran',
-      name: "Goran Babić",
-      type: "Privatna osoba",
-      phone: "091 222 3344",
-      email: "goran.babic@example.com",
-      address: "Velika Gorica",
-    );
-    clients.addAll([ivica, marija, korzo, goran]);
-
-    teamMembers.addAll([
-      TeamMember(
-        id: 'team-owner',
-        name: 'Marko Horvat',
-        role: 'Vlasnik / administrator',
-        phone: '091 100 2000',
-        email: 'marko@worklog.hr',
-      ),
-      TeamMember(
-        id: 'team-tehnicar',
-        name: 'Ivan Barić',
-        role: 'Terenski tehničar',
-        phone: '091 300 4000',
-        email: 'ivan@worklog.hr',
-      ),
-    ]);
-
-    companyProfile = const CompanyProfile(
-      name: 'WORKLOG servis',
-      activity: 'Instalacije i klimatizacija',
-      phone: '091 100 2000',
-      email: 'ured@worklog.hr',
-      address: 'Zagreb, Hrvatska',
-      oib: '',
-    );
-
-    jobs.addAll([
-      WorkJob(
-        id: 'demo-klima',
-        title: "Servis klima uređaja",
-        client: ivica,
-        location: "Zagreb, Trešnjevka",
-        scheduledStart: at(0, 8, 0),
-        scheduledEnd: at(0, 12, 0),
-        status: JobStatus.active,
-        description: "Redovni servis, čišćenje filtera i provjera rada.",
-        minutesWorked: 135,
-        assignedMemberId: 'team-tehnicar',
-        assignedMemberName: 'Ivan Barić',
-        materials: const [
-          MaterialItem(
-            name: "Sredstvo za čišćenje",
-            quantity: "1 kom",
-            price: 12.50,
-          ),
-          MaterialItem(name: "Filter klime", quantity: "1 kom", price: 18),
-          MaterialItem(name: "Plin R32", quantity: "0,5 kg", price: 35),
-        ],
-      ),
-      WorkJob(
-        id: 'demo-bojler',
-        title: "Servis bojlera",
-        client: marija,
-        location: "Zagreb, Maksimir",
-        scheduledStart: at(0, 13, 30),
-        scheduledEnd: at(0, 15, 0),
-        status: JobStatus.planned,
-        assignedMemberId: 'team-owner',
-        assignedMemberName: 'Marko Horvat',
-      ),
-      WorkJob(
-        id: 'demo-rasvjeta',
-        title: "Ugradnja rasvjete",
-        client: korzo,
-        location: "Zagreb, Centar",
-        scheduledStart: at(1, 9, 0),
-        scheduledEnd: at(1, 12, 0),
-        status: JobStatus.planned,
-        assignedMemberId: 'team-tehnicar',
-        assignedMemberName: 'Ivan Barić',
-      ),
-      WorkJob(
-        id: 'demo-instalacije',
-        title: "Sanacija instalacija",
-        client: goran,
-        location: "Velika Gorica",
-        scheduledStart: at(-1, 14, 30),
-        scheduledEnd: at(-1, 16, 0),
-        status: JobStatus.completed,
-      ),
-    ]);
-  }
 
   Future<void> load() async {
     final service = storage;
@@ -182,19 +56,14 @@ class AppState extends ChangeNotifier {
     final savedMessages = (data['messages'] as List? ?? const [])
         .whereType<Map>()
         .map(
-          (value) => ConversationMessage.fromJson(
-            Map<String, dynamic>.from(value),
-          ),
+          (value) =>
+              ConversationMessage.fromJson(Map<String, dynamic>.from(value)),
         )
         .toList();
 
     final savedActivity = (data['activityItems'] as List? ?? const [])
         .whereType<Map>()
-        .map(
-          (value) => ActivityItem.fromJson(
-            Map<String, dynamic>.from(value),
-          ),
-        )
+        .map((value) => ActivityItem.fromJson(Map<String, dynamic>.from(value)))
         .toList();
 
     final companyRaw = data['companyProfile'];
@@ -294,6 +163,68 @@ class AppState extends ChangeNotifier {
     _schedulePersist();
   }
 
+  bool startJobTimer(WorkJob job, {DateTime? at}) {
+    if (!job.startTimer(at: at)) return false;
+    job.status = JobStatus.active;
+    _recordActivity(
+      title: 'Mjerenje vremena pokrenuto',
+      subtitle: '${job.title} • ${job.client.name}',
+      kind: 'timer',
+    );
+    notifyListeners();
+    _schedulePersist();
+    return true;
+  }
+
+  bool pauseJobTimer(WorkJob job, {DateTime? at}) {
+    if (!job.pauseTimer(at: at)) return false;
+    if (!job.status.isClosed) {
+      job.status = JobStatus.paused;
+    }
+    _recordActivity(
+      title: 'Mjerenje vremena pauzirano',
+      subtitle: '${job.title} • ${job.client.name}',
+      kind: 'timer',
+    );
+    notifyListeners();
+    _schedulePersist();
+    return true;
+  }
+
+  bool stopJobTimer(WorkJob job, {DateTime? at}) {
+    if (!job.pauseTimer(at: at)) return false;
+    if (!job.status.isClosed) {
+      job.status = JobStatus.active;
+    }
+    _recordActivity(
+      title: 'Mjerenje vremena završeno',
+      subtitle: '${job.title} • ${job.client.name}',
+      kind: 'timer',
+    );
+    notifyListeners();
+    _schedulePersist();
+    return true;
+  }
+
+  bool adjustJobTime(
+    WorkJob job, {
+    required int minutes,
+    required String reason,
+  }) {
+    final cleanReason = reason.trim();
+    if (minutes == 0 || cleanReason.isEmpty) return false;
+    job.addManualTimeAdjustment(minutes: minutes, reason: cleanReason);
+    final sign = minutes > 0 ? '+' : '';
+    _recordActivity(
+      title: 'Ručna korekcija vremena',
+      subtitle: '${job.title} • $sign$minutes min • $cleanReason',
+      kind: 'timer',
+    );
+    notifyListeners();
+    _schedulePersist();
+    return true;
+  }
+
   void updateJob({
     String? activityTitle,
     String? activitySubtitle,
@@ -388,9 +319,7 @@ class AppState extends ChangeNotifier {
 
   bool removeTeamMember(String memberId) {
     final hasOpenJobs = jobs.any(
-      (job) =>
-          job.assignedMemberId == memberId &&
-          job.status != JobStatus.completed,
+      (job) => job.assignedMemberId == memberId && !job.status.isClosed,
     );
     if (hasOpenJobs) return false;
 
@@ -409,10 +338,9 @@ class AppState extends ChangeNotifier {
   }
 
   List<ConversationMessage> messagesForClient(String clientId) {
-    final result = messages
-        .where((message) => message.clientId == clientId)
-        .toList()
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final result =
+        messages.where((message) => message.clientId == clientId).toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return result;
   }
 
@@ -425,11 +353,7 @@ class AppState extends ChangeNotifier {
     if (clean.isEmpty) return;
 
     messages.add(
-      ConversationMessage(
-        clientId: clientId,
-        text: clean,
-        mine: mine,
-      ),
+      ConversationMessage(clientId: clientId, text: clean, mine: mine),
     );
 
     if (!mine) {
@@ -489,11 +413,7 @@ class AppState extends ChangeNotifier {
     required String subtitle,
     required String kind,
   }) {
-    _recordActivity(
-      title: title,
-      subtitle: subtitle,
-      kind: kind,
-    );
+    _recordActivity(title: title, subtitle: subtitle, kind: kind);
     notifyListeners();
     _schedulePersist();
   }
@@ -505,11 +425,7 @@ class AppState extends ChangeNotifier {
   }) {
     activityItems.insert(
       0,
-      ActivityItem(
-        title: title,
-        subtitle: subtitle,
-        kind: kind,
-      ),
+      ActivityItem(title: title, subtitle: subtitle, kind: kind),
     );
     if (activityItems.length > 200) {
       activityItems.removeRange(200, activityItems.length);
@@ -531,16 +447,15 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> exportSnapshot() => {
-        'schemaVersion': 6,
-        'companyProfile': companyProfile.toJson(),
-        'preferences': preferences.toJson(),
-        'clients': clients.map((client) => client.toJson()).toList(),
-        'teamMembers': teamMembers.map((member) => member.toJson()).toList(),
-        'messages': messages.map((message) => message.toJson()).toList(),
-        'activityItems':
-            activityItems.map((item) => item.toJson()).toList(),
-        'jobs': jobs.map((job) => job.toJson()).toList(),
-      };
+    'schemaVersion': 7,
+    'companyProfile': companyProfile.toJson(),
+    'preferences': preferences.toJson(),
+    'clients': clients.map((client) => client.toJson()).toList(),
+    'teamMembers': teamMembers.map((member) => member.toJson()).toList(),
+    'messages': messages.map((message) => message.toJson()).toList(),
+    'activityItems': activityItems.map((item) => item.toJson()).toList(),
+    'jobs': jobs.map((job) => job.toJson()).toList(),
+  };
 
   Future<void> resetLocalData() async {
     final service = storage;
@@ -555,7 +470,6 @@ class AppState extends ChangeNotifier {
     loggedIn = false;
     profileReady = false;
     activeTab = 0;
-    _seed();
     if (service != null) {
       await service.clearAll();
       await _persist();
@@ -581,7 +495,7 @@ class AppState extends ChangeNotifier {
     if (service == null) return;
     try {
       await service.writeState({
-        'schemaVersion': 6,
+        'schemaVersion': 7,
         'onboardingComplete': onboardingComplete,
         'profileReady': profileReady,
         'companyProfile': companyProfile.toJson(),
@@ -589,8 +503,7 @@ class AppState extends ChangeNotifier {
         'clients': clients.map((client) => client.toJson()).toList(),
         'teamMembers': teamMembers.map((member) => member.toJson()).toList(),
         'messages': messages.map((message) => message.toJson()).toList(),
-        'activityItems':
-            activityItems.map((item) => item.toJson()).toList(),
+        'activityItems': activityItems.map((item) => item.toJson()).toList(),
         'jobs': jobs.map((job) => job.toJson()).toList(),
       });
     } catch (error, stackTrace) {

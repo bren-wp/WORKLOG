@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../app_state.dart';
 import '../brand.dart';
 import '../models.dart';
@@ -22,18 +23,15 @@ class ClientDetailScreen extends StatefulWidget {
 
 class _ClientDetailScreenState extends State<ClientDetailScreen> {
   Client get client => widget.state.clients.firstWhere(
-        (item) => item.id == widget.client.id,
-        orElse: () => widget.client,
-      );
+    (item) => item.id == widget.client.id,
+    orElse: () => widget.client,
+  );
 
   Future<void> editClient() async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ClientEditorScreen(
-          state: widget.state,
-          client: client,
-        ),
+        builder: (_) => ClientEditorScreen(state: widget.state, client: client),
       ),
     );
     if (mounted) setState(() {});
@@ -164,10 +162,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => JobDetailScreen(
-                      state: widget.state,
-                      job: job,
-                    ),
+                    builder: (_) =>
+                        JobDetailScreen(state: widget.state, job: job),
                   ),
                 ),
                 leading: const Icon(
@@ -188,10 +184,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => MessagesScreen(
-                  state: widget.state,
-                  client: current,
-                ),
+                builder: (_) =>
+                    MessagesScreen(state: widget.state, client: current),
               ),
             ),
             icon: const Icon(Icons.chat_bubble_outline_rounded),
@@ -216,11 +210,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
 }
 
 class MessagesScreen extends StatefulWidget {
-  const MessagesScreen({
-    super.key,
-    required this.state,
-    required this.client,
-  });
+  const MessagesScreen({super.key, required this.state, required this.client});
 
   final AppState state;
   final Client client;
@@ -244,11 +234,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     final text = controller.text.trim();
     if (text.isEmpty) return;
 
-    widget.state.addMessage(
-      clientId: widget.client.id,
-      text: text,
-      mine: true,
-    );
+    widget.state.addMessage(clientId: widget.client.id, text: text, mine: true);
     controller.clear();
     _scrollToEnd();
   }
@@ -330,8 +316,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       body: AnimatedBuilder(
         animation: widget.state,
         builder: (context, _) {
-          final messages =
-              widget.state.messagesForClient(widget.client.id);
+          final messages = widget.state.messagesForClient(widget.client.id);
 
           return Column(
             children: [
@@ -351,17 +336,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               SizedBox(height: 12),
                               Text(
                                 'Nema evidentiranih poruka.',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.w800),
                               ),
                               SizedBox(height: 6),
                               Text(
                                 'Pošalji internu zabilješku razgovora ili evidentiraj odgovor klijenta.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: WorklogColors.muted,
-                                ),
+                                style: TextStyle(color: WorklogColors.muted),
                               ),
                             ],
                           ),
@@ -462,30 +443,27 @@ class MessageBubble extends StatelessWidget {
 }
 
 class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({
-    super.key,
-    required this.state,
-  });
+  const NotificationsScreen({super.key, required this.state});
 
   final AppState state;
 
   IconData iconFor(String kind) => switch (kind) {
-        'job' => Icons.handyman_outlined,
-        'client' => Icons.person_outline_rounded,
-        'team' => Icons.groups_outlined,
-        'report' => Icons.picture_as_pdf_outlined,
-        'message' => Icons.chat_bubble_outline_rounded,
-        _ => Icons.info_outline_rounded,
-      };
+    'job' => Icons.handyman_outlined,
+    'client' => Icons.person_outline_rounded,
+    'team' => Icons.groups_outlined,
+    'report' => Icons.picture_as_pdf_outlined,
+    'message' => Icons.chat_bubble_outline_rounded,
+    _ => Icons.info_outline_rounded,
+  };
 
   Color colorFor(String kind) => switch (kind) {
-        'job' => WorklogColors.primary,
-        'client' => WorklogColors.cyan,
-        'team' => WorklogColors.violet,
-        'report' => WorklogColors.success,
-        'message' => WorklogColors.warning,
-        _ => WorklogColors.muted,
-      };
+    'job' => WorklogColors.primary,
+    'client' => WorklogColors.cyan,
+    'team' => WorklogColors.violet,
+    'report' => WorklogColors.success,
+    'message' => WorklogColors.warning,
+    _ => WorklogColors.muted,
+  };
 
   String formatTimestamp(DateTime value) {
     final now = DateTime.now();
@@ -609,22 +587,36 @@ class ReportsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text("Izvještaji")),
       body: ListView(
         padding: const EdgeInsets.all(18),
-        children: state.jobs.map(
-          (job) => Card(
-            child: ListTile(
-              leading: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
-              title: Text(job.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: Text("${job.client.name} • ${job.dateLabel}"),
-              trailing: Chip(label: Text(job.status == JobStatus.completed ? "Potpisano" : "Na čekanju")),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SendReportScreen(state: state, job: job),
+        children: state.jobs
+            .map(
+              (job) => Card(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.picture_as_pdf_rounded,
+                    color: Colors.redAccent,
+                  ),
+                  title: Text(
+                    job.title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text("${job.client.name} • ${job.dateLabel}"),
+                  trailing: Chip(
+                    label: Text(
+                      job.status == JobStatus.completed
+                          ? "Potpisano"
+                          : "Na čekanju",
+                    ),
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SendReportScreen(state: state, job: job),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ).toList(),
+            )
+            .toList(),
       ),
     );
   }

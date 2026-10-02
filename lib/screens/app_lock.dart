@@ -86,19 +86,13 @@ class _AppLockScreenState extends State<AppLockScreen> {
               const Text(
                 'WORKLOG je zaključan',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               const Text(
                 'Potvrdi identitet biometrijom ili sigurnosnom šifrom uređaja za pristup poslovnim podacima.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: WorklogColors.muted,
-                  height: 1.45,
-                ),
+                style: TextStyle(color: WorklogColors.muted, height: 1.45),
               ),
               if (message != null) ...[
                 const SizedBox(height: 16),
