@@ -490,7 +490,17 @@ class _TeamMemberEditorScreenState extends State<TeamMemberEditorScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    widget.state.removeTeamMember(current.id);
+    final removed = widget.state.removeTeamMember(current.id);
+    if (!removed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Člana nije moguće ukloniti dok ima aktivne dodijeljene poslove.',
+          ),
+        ),
+      );
+      return;
+    }
     Navigator.pop(context);
   }
 
