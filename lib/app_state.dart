@@ -302,6 +302,40 @@ class AppState extends ChangeNotifier {
     _schedulePersist();
   }
 
+  Map<String, dynamic> exportSnapshot() => {
+        'schemaVersion': 3,
+        'companyProfile': companyProfile.toJson(),
+        'preferences': preferences.toJson(),
+        'clients': clients.map((client) => client.toJson()).toList(),
+        'teamMembers': teamMembers.map((member) => member.toJson()).toList(),
+        'jobs': jobs.map((job) => job.toJson()).toList(),
+      };
+
+  Future<void> resetLocalData() async {
+    final service = storage;
+    clients.clear();
+    jobs.clear();
+    teamMembers.clear();
+    companyProfile = const CompanyProfile();
+    preferences = const AppPreferences();
+    onboardingComplete = false;
+    loggedIn = false;
+    profileReady = false;
+    activeTab = 0;
+    _seed();
+    if (service != null) {
+      await service.clearAll();
+      await _persist();
+    }
+    notifyListeners();
+  }
+
+  void logout() {
+    loggedIn = false;
+    activeTab = 0;
+    notifyListeners();
+  }
+
   Future<void> persistNow() => _persist();
 
   void _schedulePersist() {
