@@ -251,7 +251,15 @@ class _JobsScreenState extends State<JobsScreen> {
       if (filter == "U tijeku") return job.status == JobStatus.active;
       if (filter == "Završeno") return job.status == JobStatus.completed;
       return true;
-    }).toList();
+    }).toList()
+      ..sort((a, b) {
+        final left = a.scheduledStart;
+        final right = b.scheduledStart;
+        if (left == null && right == null) return 0;
+        if (left == null) return 1;
+        if (right == null) return -1;
+        return left.compareTo(right);
+      });
 
     return ListView(
       padding: const EdgeInsets.all(18),
@@ -285,42 +293,265 @@ class _JobsScreenState extends State<JobsScreen> {
   }
 }
 
-class CalendarScreen extends StatelessWidget {
+class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key, required this.state});
+
   final AppState state;
 
   @override
+  State<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends State<CalendarScreen> {
+  static const weekdays = [
+    'Pon',
+    'Uto',
+    'Sri',
+    'Čet',
+    'Pet',
+    'Sub',
+    'Ned',
+  ];
+
+  static const months = [
+    'siječanj',
+    'veljača',
+    'ožujak',
+    'travanj',
+    'svibanj',
+    'lipanj',
+    'srpanj',
+    'kolovoz',
+    'rujan',
+    'listopad',
+    'studeni',
+    'prosinac',
+  ];
+
+  String mode = 'Tjedan';
+  DateTime anchor = DateTime.now();
+
+  DateTime dayStart(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  DateTime weekStart(DateTime value) {
+    final day = dayStart(value);
+    return day.subtract(Duration(days: day.weekday - DateTime.monday));
+  }
+
+  DateTime get rangeStart => switch (mode) {
+        'Dan' => dayStart(anchor),
+        'Tjedan' => weekStart(anchor),
+        'Mjesec' => DateTime(anchor.year, anchor.month),
+        _ => dayStart(anchor),
+      };
+
+  DateTime get rangeEnd => switch (mode) {
+        'Dan' => rangeStart.add(const Duration(days: 1)),
+        'Tjedan' => rangeStart.add(const Duration(days: 7)),
+        'Mjesec' => DateTime(anchor.year, anchor.month + 1),
+        _ => rangeStart.add(const Duration(days: 1)),
+      };
+
+  String get rangeLabel {
+    if (mode == 'Dan') return formatCroatianDate(anchor);
+    if (mode == 'Mjesec') {
+      return '${months[anchor.month - 1]} ${anchor.year}.';
+    }
+    final end = rangeEnd.subtract(const Duration(days: 1));
+    return '${formatCroatianDate(rangeStart)} – ${formatCroatianDate(end)}';
+  }
+
+  void move(int direction) {
+    setState(() {
+      anchor = switch (mode) {
+        'Dan' => anchor.add(Duration(days: direction)),
+        'Tjedan' => anchor.add(Duration(days: 7 * direction)),
+        'Mjesec' => DateTime(
+            anchor.year,
+            anchor.month + direction,
+            anchor.day.clamp(1, 28),
+          ),
+        _ => anchor,
+      };
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final jobs = widget.state.jobs.where((job) {
+      final start = job.scheduledStart;
+      if (start == null) return false;
+      return !start.isBefore(rangeStart) && start.isBefore(rangeEnd);
+    }).toList()
+      ..sort(
+        (a, b) => a.scheduledStart!.compareTo(b.scheduledStart!),
+      );
+
+    final unscheduled = widget.state.jobs
+        .where((job) => job.scheduledStart == null)
+        .toList();
+
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
-        const Text("Kalendar", style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
+        const Text(
+          'Kalendar',
+          style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 14),
         SegmentedButton<String>(
           segments: const [
-            ButtonSegment(value: "Dan", label: Text("Dan")),
-            ButtonSegment(value: "Tjedan", label: Text("Tjedan")),
-            ButtonSegment(value: "Mjesec", label: Text("Mjesec")),
+            ButtonSegment(value: 'Dan', label: Text('Dan')),
+            ButtonSegment(value: 'Tjedan', label: Text('Tjedan')),
+            ButtonSegment(value: 'Mjesec', label: Text('Mjesec')),
           ],
-          selected: const {"Tjedan"},
-          onSelectionChanged: (_) {},
+          selected: {mode},
+          onSelectionChanged: (values) {
+            if (values.isEmpty) return;
+            setState(() => mode = values.first);
+          },
         ),
-        const SizedBox(height: 16),
-        const Text("28. rujna – 4. listopada 2026.", style: TextStyle(fontWeight: FontWeight.w800)),
         const SizedBox(height: 14),
-        ...state.jobs.asMap().entries.map(
-          (entry) => Card(
-            child: ListTile(
-              leading: Text(["Pon", "Uto", "Sri", "Čet"][entry.key % 4], style: const TextStyle(color: WorklogColors.primary, fontWeight: FontWeight.w900)),
-              title: Text(entry.value.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(
-                "${entry.value.timeLabel} • ${entry.value.client.name} • "
-                "${entry.value.assignedMemberName ?? "Nije dodijeljeno"}",
+        Row(
+          children: [
+            IconButton(
+              onPressed: () => move(-1),
+              tooltip: 'Prethodno razdoblje',
+              icon: const Icon(Icons.chevron_left_rounded),
+            ),
+            Expanded(
+              child: Column(
+                children: [
+                  Text(
+                    rangeLabel,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => anchor = DateTime.now()),
+                    child: const Text('Danas'),
+                  ),
+                ],
               ),
-              trailing: Text(entry.value.statusLabel, style: const TextStyle(fontSize: 11)),
+            ),
+            IconButton(
+              onPressed: () => move(1),
+              tooltip: 'Sljedeće razdoblje',
+              icon: const Icon(Icons.chevron_right_rounded),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (jobs.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.event_available_outlined,
+                    size: 42,
+                    color: WorklogColors.muted,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Nema poslova u ovom razdoblju.',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    mode == 'Dan'
+                        ? 'Odaberi drugi dan ili dodaj novi posao.'
+                        : 'Promijeni razdoblje ili dodaj novi posao.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: WorklogColors.muted),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ...jobs.map((job) {
+          final start = job.scheduledStart!;
+          return Card(
+            child: ListTile(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => JobDetailScreen(
+                    state: widget.state,
+                    job: job,
+                  ),
+                ),
+              ),
+              leading: SizedBox(
+                width: 42,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      weekdays[start.weekday - 1],
+                      style: const TextStyle(
+                        color: WorklogColors.primary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      start.day.toString(),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              title: Text(
+                job.title,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                '${job.timeLabel} • ${job.client.name}\n'
+                '${job.assignedMemberName ?? "Nije dodijeljeno"}',
+              ),
+              isThreeLine: true,
+              trailing: Text(
+                job.statusLabel,
+                style: const TextStyle(fontSize: 11),
+              ),
+            ),
+          );
+        }),
+        if (unscheduled.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          const Text(
+            'Bez termina',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          ...unscheduled.map(
+            (job) => Card(
+              child: ListTile(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => JobDetailScreen(
+                      state: widget.state,
+                      job: job,
+                    ),
+                  ),
+                ),
+                leading: const Icon(
+                  Icons.event_busy_outlined,
+                  color: WorklogColors.warning,
+                ),
+                title: Text(job.title),
+                subtitle: Text(job.client.name),
+                trailing: const Icon(Icons.chevron_right_rounded),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
