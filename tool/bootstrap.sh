@@ -7,5 +7,6 @@ flutter create \
   --platforms android,ios \
   .
 
+python3 tool/configure_platforms.py
 flutter pub get
 echo "WORKLOG Android/iOS platforme su pripremljene."
