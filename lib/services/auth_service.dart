@@ -4,11 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class AuthUser {
-  const AuthUser({
-    required this.id,
-    required this.name,
-    required this.email,
-  });
+  const AuthUser({required this.id, required this.name, required this.email});
 
   final String id;
   final String name;
@@ -118,10 +114,7 @@ class AuthService {
 
     final response = await _client.get(
       _uri('auth/me'),
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
     );
     final data = _decode(response);
     final user = data['user'];

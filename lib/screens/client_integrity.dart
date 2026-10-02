@@ -135,8 +135,7 @@ class _ClientDuplicatesScreenState extends State<ClientDuplicatesScreen> {
                           initialValue: selectedId,
                           decoration: const InputDecoration(
                             labelText: 'Primarni klijent',
-                            helperText:
-                                'Podaci i povijest drugih zapisa spojit će se u ovaj zapis.',
+                            helperText: 'Podaci i povijest drugih zapisa spojit će se u ovaj zapis.',
                           ),
                           items: group.clients
                               .map(

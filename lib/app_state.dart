@@ -176,14 +176,10 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     final service = auth;
     if (service == null || !service.isConfigured) {
-      authError =
-          'WORKLOG API nije konfiguriran. Postavi WORKLOG_API_BASE_URL pri buildanju.';
+      authError = 'WORKLOG API nije konfiguriran. Postavi WORKLOG_API_BASE_URL pri buildanju.';
       notifyListeners();
       return false;
     }
@@ -216,8 +212,7 @@ class AppState extends ChangeNotifier {
   }) async {
     final service = auth;
     if (service == null || !service.isConfigured) {
-      authError =
-          'WORKLOG API nije konfiguriran. Postavi WORKLOG_API_BASE_URL pri buildanju.';
+      authError = 'WORKLOG API nije konfiguriran. Postavi WORKLOG_API_BASE_URL pri buildanju.';
       notifyListeners();
       return false;
     }
@@ -425,9 +420,9 @@ class AppState extends ChangeNotifier {
 
       final members = ids.map((id) => byId[id]).whereType<Client>().toList()
         ..sort(
-          (a, b) => normalizeSearchValue(
-            a.name,
-          ).compareTo(normalizeSearchValue(b.name)),
+          (a, b) =>
+              normalizeSearchValue(a.name)
+                  .compareTo(normalizeSearchValue(b.name)),
         );
 
       groups.add(

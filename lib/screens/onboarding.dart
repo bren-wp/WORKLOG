@@ -195,9 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted || success) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          widget.state.authError ?? 'Autentikacija nije uspjela.',
-        ),
+        content: Text(widget.state.authError ?? 'Autentikacija nije uspjela.'),
       ),
     );
   }
@@ -237,10 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 40),
             Text(
               registerMode ? 'Izradi WORKLOG račun' : 'Prijava u WORKLOG',
-              style: const TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.w900,
-              ),
+              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -287,10 +282,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.dns_rounded,
-                        color: WorklogColors.cyan,
-                      ),
+                      Icon(Icons.dns_rounded, color: WorklogColors.cyan),
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -350,18 +342,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? AutofillHints.newPassword
                           : AutofillHints.password,
                     ],
-                    onFieldSubmitted: (_) => configured && !busy
-                        ? submit()
-                        : null,
+                    onFieldSubmitted: (_) =>
+                        configured && !busy ? submit() : null,
                     decoration: InputDecoration(
                       labelText: 'Lozinka',
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
                       suffixIcon: IconButton(
                         onPressed: busy
                             ? null
-                            : () => setState(
-                                  () => showPassword = !showPassword,
-                                ),
+                            : () =>
+                                  setState(() => showPassword = !showPassword),
                         icon: Icon(
                           showPassword
                               ? Icons.visibility_off_rounded
@@ -380,18 +370,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       icon: busy
                           ? const SizedBox.square(
                               dimension: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Icon(
                               registerMode
                                   ? Icons.person_add_alt_1_rounded
                                   : Icons.login_rounded,
                             ),
-                      label: Text(
-                        registerMode ? 'Izradi račun' : 'Prijavi se',
-                      ),
+                      label: Text(registerMode ? 'Izradi račun' : 'Prijavi se'),
                     ),
                   ),
                 ],
