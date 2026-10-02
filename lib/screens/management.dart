@@ -593,14 +593,9 @@ class SettingsScreen extends StatelessWidget {
                     const Divider(height: 1),
                     SwitchListTile(
                       value: prefs.autoSaveEnabled,
-                      onChanged: (value) {
-                        state.updatePreferences(
-                          prefs.copyWith(autoSaveEnabled: value),
-                        );
-                        if (value) {
-                          state.persistNow();
-                        }
-                      },
+                      onChanged: (value) => state.updatePreferences(
+                        prefs.copyWith(autoSaveEnabled: value),
+                      ),
                       title: const Text('Automatsko spremanje'),
                       subtitle: const Text(
                         'Promjene automatski spremaj u privatnu pohranu.',
