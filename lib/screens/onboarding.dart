@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../brand.dart';
+import '../models.dart';
 import '../worklog_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -181,6 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key, required this.state});
+
   final AppState state;
 
   @override
@@ -188,64 +190,139 @@ class ProfileSetupScreen extends StatefulWidget {
 }
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+  final formKey = GlobalKey<FormState>();
+  final companyName = TextEditingController();
+  final phone = TextEditingController();
   String activity = "Instalacije i klimatizacija";
   String employees = "1 – 5";
+
+  @override
+  void dispose() {
+    companyName.dispose();
+    phone.dispose();
+    super.dispose();
+  }
+
+  void finish() {
+    if (!(formKey.currentState?.validate() ?? false)) return;
+    widget.state.updateCompanyProfile(
+      CompanyProfile(
+        name: companyName.text.trim(),
+        activity: activity,
+        phone: phone.text.trim(),
+        employeeRange: employees,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Profil tvrtke")),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const Text("Unesi osnovne podatke za početak korištenja.", style: TextStyle(color: WorklogColors.muted)),
-          const SizedBox(height: 24),
-          Center(
-            child: Container(
-              width: 112,
-              height: 112,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: WorklogColors.primary, width: 1.5),
-                color: WorklogColors.surface,
-              ),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [Icon(Icons.add_a_photo_outlined, color: WorklogColors.primary), SizedBox(height: 6), Text("Dodaj logo", style: TextStyle(fontSize: 12))],
+      body: Form(
+        key: formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            const Text(
+              "Unesi osnovne podatke za početak korištenja.",
+              style: TextStyle(color: WorklogColors.muted),
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: Container(
+                width: 112,
+                height: 112,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: WorklogColors.primary,
+                    width: 1.5,
+                  ),
+                  color: WorklogColors.surface,
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.business_rounded,
+                      color: WorklogColors.primary,
+                      size: 38,
+                    ),
+                    SizedBox(height: 6),
+                    Text("WORKLOG", style: TextStyle(fontSize: 12)),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 26),
-          const TextField(decoration: InputDecoration(labelText: "Naziv obrta / tvrtke")),
-          const SizedBox(height: 14),
-          DropdownButtonFormField<String>(
-            initialValue: activity,
-            items: const [
-              DropdownMenuItem(value: "Instalacije i klimatizacija", child: Text("Instalacije i klimatizacija")),
-              DropdownMenuItem(value: "Elektroinstalacije", child: Text("Elektroinstalacije")),
-              DropdownMenuItem(value: "Vodoinstalacije", child: Text("Vodoinstalacije")),
-              DropdownMenuItem(value: "Građevinski radovi", child: Text("Građevinski radovi")),
-            ],
-            onChanged: (value) => setState(() => activity = value ?? activity),
-            decoration: const InputDecoration(labelText: "Djelatnost"),
-          ),
-          const SizedBox(height: 14),
-          DropdownButtonFormField<String>(
-            initialValue: employees,
-            items: const [
-              DropdownMenuItem(value: "1 – 5", child: Text("1 – 5")),
-              DropdownMenuItem(value: "6 – 20", child: Text("6 – 20")),
-              DropdownMenuItem(value: "21 – 50", child: Text("21 – 50")),
-              DropdownMenuItem(value: "51+", child: Text("51+")),
-            ],
-            onChanged: (value) => setState(() => employees = value ?? employees),
-            decoration: const InputDecoration(labelText: "Broj zaposlenih"),
-          ),
-          const SizedBox(height: 14),
-          const TextField(keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: "Broj telefona", prefixIcon: Icon(Icons.phone_outlined))),
-          const SizedBox(height: 28),
-          SizedBox(height: 54, child: FilledButton(onPressed: widget.state.setupProfile, child: const Text("Završi postavljanje"))),
-        ],
+            const SizedBox(height: 26),
+            TextFormField(
+              controller: companyName,
+              decoration: const InputDecoration(
+                labelText: "Naziv obrta / tvrtke *",
+              ),
+              validator: (value) =>
+                  value == null || value.trim().length < 2
+                      ? "Unesi naziv tvrtke."
+                      : null,
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<String>(
+              initialValue: activity,
+              items: const [
+                DropdownMenuItem(
+                  value: "Instalacije i klimatizacija",
+                  child: Text("Instalacije i klimatizacija"),
+                ),
+                DropdownMenuItem(
+                  value: "Elektroinstalacije",
+                  child: Text("Elektroinstalacije"),
+                ),
+                DropdownMenuItem(
+                  value: "Vodoinstalacije",
+                  child: Text("Vodoinstalacije"),
+                ),
+                DropdownMenuItem(
+                  value: "Građevinski radovi",
+                  child: Text("Građevinski radovi"),
+                ),
+              ],
+              onChanged: (value) =>
+                  setState(() => activity = value ?? activity),
+              decoration: const InputDecoration(labelText: "Djelatnost"),
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<String>(
+              initialValue: employees,
+              items: const [
+                DropdownMenuItem(value: "1 – 5", child: Text("1 – 5")),
+                DropdownMenuItem(value: "6 – 20", child: Text("6 – 20")),
+                DropdownMenuItem(value: "21 – 50", child: Text("21 – 50")),
+                DropdownMenuItem(value: "51+", child: Text("51+")),
+              ],
+              onChanged: (value) =>
+                  setState(() => employees = value ?? employees),
+              decoration: const InputDecoration(labelText: "Broj zaposlenih"),
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: phone,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: "Broj telefona",
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              height: 54,
+              child: FilledButton(
+                onPressed: finish,
+                child: const Text("Završi postavljanje"),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
