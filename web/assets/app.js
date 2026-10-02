@@ -107,6 +107,25 @@
         headers: { Authorization: 'Bearer ' + accessToken },
       });
       showSession(data.user);
+      return;
+    } catch (_) {
+      if (!refreshToken) {
+        sessionStorage.removeItem('worklog_access');
+        sessionStorage.removeItem('worklog_refresh');
+        return;
+      }
+    }
+
+    try {
+      const data = await request('api/v1/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      accessToken = data.access_token;
+      refreshToken = data.refresh_token;
+      sessionStorage.setItem('worklog_access', accessToken);
+      sessionStorage.setItem('worklog_refresh', refreshToken);
+      showSession(data.user);
     } catch (_) {
       sessionStorage.removeItem('worklog_access');
       sessionStorage.removeItem('worklog_refresh');
