@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Android-API%2024%2B-3DDC84?logo=android&logoColor=white" alt="Android">
   <img src="https://img.shields.io/badge/iOS-13%2B-111111?logo=apple&logoColor=white" alt="iOS">
   <img src="https://img.shields.io/badge/Flutter-stable-02569B?logo=flutter&logoColor=white" alt="Flutter">
-  <img src="https://img.shields.io/badge/verzija-0.9.0-3B82F6" alt="Version 0.9.0">
+  <img src="https://img.shields.io/badge/verzija-0.10.0-3B82F6" alt="Version 0.10.0">
   <img src="https://img.shields.io/badge/licenca-MIT-0B1E3A" alt="MIT License">
 </p>
 
@@ -51,13 +51,14 @@ Ove slike generira Flutter iz stvarnih produkcijskih widgeta aplikacije. Testni 
 
 - **Poslovi** — planirano, potvrđeno, na putu, u tijeku, pauzirano, završeno i otkazano.
 - **Evidencija vremena** — više trajnih intervala, pauza/nastavak, oporavak nakon ponovnog učitavanja i ručna korekcija uz razlog.
-- **Klijenti** — privatne osobe i poslovni subjekti, kontaktni podaci, adrese i povijest povezanih poslova.
+- **Klijenti** — privatne osobe, tvrtke i obrti, OIB s checksum validacijom, kontakti, adrese, povijest poslova te detekcija i sigurno spajanje duplikata.
 - **Terenski tim** — članovi, uloge, dodjela poslova i zaštita od uklanjanja člana s otvorenim nalogom.
 - **Kontrolna lista** — prilagodljive i trajno spremljene stavke po poslu, bez hardkodiranog demo sadržaja.
 - **Fotografije** — kamera/galerija, lokalna pohrana i odvojene fotografije prije/poslije.
 - **Potpis** — lokalno spremanje potpisa klijenta i uključivanje u zapisnik.
 - **PDF** — lokalno generiranje i sistemsko dijeljenje zapisnika.
 - **Kalendar** — pregled termina i direktno otvaranje poslova.
+- **Globalna pretraga** — poslovi, klijenti, OIB, adrese, članovi tima i ID naloga iz jednog ekrana.
 - **Sigurnost** — lokalna biometrija ili sigurnosna šifra uređaja, privatne Android obavijesti i zabrana cleartext HTTP prometa.
 - **Privatnost** — bez analytics/ads SDK-a i bez lažnog cloud uploada u trenutnoj verziji.
 - **Izvoz/brisanje** — lokalni izvoz aplikacijskog stanja i brisanje WORKLOG podataka.
