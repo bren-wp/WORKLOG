@@ -988,9 +988,9 @@ class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
     final remainder = seconds % 60;
-    if (hours > 0) return '${hours} h ${minutes} min';
-    if (minutes > 0) return '${minutes} min ${remainder} s';
-    return '${remainder} s';
+    if (hours > 0) return '$hours h $minutes min';
+    if (minutes > 0) return '$minutes min $remainder s';
+    return '$remainder s';
   }
 
   @override
@@ -1059,7 +1059,7 @@ class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
                   const SizedBox(height: 14),
                   OutlinedButton.icon(
                     onPressed: adjustTime,
-                    icon: const Icon(Icons.edit_clock_outlined),
+                    icon: const Icon(Icons.more_time_rounded),
                     label: const Text('Ručna korekcija'),
                   ),
                 ],
