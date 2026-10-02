@@ -246,14 +246,100 @@ class MaterialItem {
   }
 }
 
+const _croatianMonths = <String>[
+  'siječnja',
+  'veljače',
+  'ožujka',
+  'travnja',
+  'svibnja',
+  'lipnja',
+  'srpnja',
+  'kolovoza',
+  'rujna',
+  'listopada',
+  'studenoga',
+  'prosinca',
+];
+
+const _croatianMonthLookup = <String, int>{
+  'siječnja': 1,
+  'veljače': 2,
+  'ožujka': 3,
+  'travnja': 4,
+  'svibnja': 5,
+  'lipnja': 6,
+  'srpnja': 7,
+  'kolovoza': 8,
+  'rujna': 9,
+  'listopada': 10,
+  'studenoga': 11,
+  'prosinca': 12,
+};
+
+String formatCroatianDate(DateTime value) =>
+    '${value.day}. ${_croatianMonths[value.month - 1]} ${value.year}.';
+
+String formatClock(DateTime value) =>
+    '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+
+String formatTimeRange(DateTime start, DateTime? end) {
+  if (end == null) return formatClock(start);
+  return '${formatClock(start)} – ${formatClock(end)}';
+}
+
+DateTime? parseCroatianScheduleStart(String dateLabel, String timeLabel) {
+  final date = RegExp(r'^(\d{1,2})\.\s+([^\s]+)\s+(\d{4})\.?$')
+      .firstMatch(dateLabel.trim());
+  final time = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(timeLabel);
+  if (date == null || time == null) return null;
+
+  final day = int.tryParse(date.group(1) ?? '');
+  final month = _croatianMonthLookup[date.group(2)];
+  final year = int.tryParse(date.group(3) ?? '');
+  final hour = int.tryParse(time.group(1) ?? '');
+  final minute = int.tryParse(time.group(2) ?? '');
+  if (day == null ||
+      month == null ||
+      year == null ||
+      hour == null ||
+      minute == null) {
+    return null;
+  }
+
+  try {
+    return DateTime(year, month, day, hour, minute);
+  } on ArgumentError {
+    return null;
+  }
+}
+
+DateTime? parseCroatianScheduleEnd(
+  String dateLabel,
+  String timeLabel,
+  DateTime? start,
+) {
+  final times = RegExp(r'(\d{1,2}):(\d{2})').allMatches(timeLabel).toList();
+  if (times.length < 2 || start == null) return null;
+
+  final hour = int.tryParse(times[1].group(1) ?? '');
+  final minute = int.tryParse(times[1].group(2) ?? '');
+  if (hour == null || minute == null) return null;
+
+  var end = DateTime(start.year, start.month, start.day, hour, minute);
+  if (!end.isAfter(start)) {
+    end = end.add(const Duration(days: 1));
+  }
+  return end;
+}
+
 class WorkJob {
   WorkJob({
     String? id,
     required this.title,
     required this.client,
     required this.location,
-    required this.dateLabel,
-    required this.timeLabel,
+    String? dateLabel,
+    String? timeLabel,
     required this.status,
     this.description = "",
     this.priority = "Srednji",
@@ -267,18 +353,26 @@ class WorkJob {
     this.reportSent = false,
     this.assignedMemberId,
     this.assignedMemberName,
+    this.scheduledStart,
+    this.scheduledEnd,
   })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+        dateLabel = dateLabel ??
+            (scheduledStart == null ? '' : formatCroatianDate(scheduledStart)),
+        timeLabel = timeLabel ??
+            (scheduledStart == null
+                ? ''
+                : formatTimeRange(scheduledStart, scheduledEnd)),
         materials = materials ?? <MaterialItem>[],
         notes = notes ?? <String>[],
         beforePhotoPaths = beforePhotoPaths ?? <String>[],
         afterPhotoPaths = afterPhotoPaths ?? <String>[];
 
   final String id;
-  final String title;
+  String title;
   Client client;
-  final String location;
-  final String dateLabel;
-  final String timeLabel;
+  String location;
+  String dateLabel;
+  String timeLabel;
   JobStatus status;
   String description;
   String priority;
@@ -292,12 +386,21 @@ class WorkJob {
   bool reportSent;
   String? assignedMemberId;
   String? assignedMemberName;
+  DateTime? scheduledStart;
+  DateTime? scheduledEnd;
 
   String get statusLabel => switch (status) {
         JobStatus.planned => "Planirano",
         JobStatus.active => "U tijeku",
         JobStatus.completed => "Završeno",
       };
+
+  void setSchedule(DateTime start, DateTime end) {
+    scheduledStart = start;
+    scheduledEnd = end;
+    dateLabel = formatCroatianDate(start);
+    timeLabel = formatTimeRange(start, end);
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -306,6 +409,8 @@ class WorkJob {
         'location': location,
         'dateLabel': dateLabel,
         'timeLabel': timeLabel,
+        'scheduledStart': scheduledStart?.toIso8601String(),
+        'scheduledEnd': scheduledEnd?.toIso8601String(),
         'status': status.name,
         'description': description,
         'priority': priority,
@@ -328,6 +433,19 @@ class WorkJob {
       orElse: () => JobStatus.planned,
     );
 
+    final dateLabel = json['dateLabel'] as String? ?? '';
+    final timeLabel = json['timeLabel'] as String? ?? '';
+    final savedStart = DateTime.tryParse(
+      json['scheduledStart'] as String? ?? '',
+    );
+    final resolvedStart =
+        savedStart ?? parseCroatianScheduleStart(dateLabel, timeLabel);
+    final savedEnd = DateTime.tryParse(
+      json['scheduledEnd'] as String? ?? '',
+    );
+    final resolvedEnd = savedEnd ??
+        parseCroatianScheduleEnd(dateLabel, timeLabel, resolvedStart);
+
     return WorkJob(
       id: json['id'] as String?,
       title: json['title'] as String? ?? 'Posao',
@@ -335,8 +453,10 @@ class WorkJob {
         Map<String, dynamic>.from(json['client'] as Map? ?? const {}),
       ),
       location: json['location'] as String? ?? '',
-      dateLabel: json['dateLabel'] as String? ?? '',
-      timeLabel: json['timeLabel'] as String? ?? '',
+      dateLabel: dateLabel,
+      timeLabel: timeLabel,
+      scheduledStart: resolvedStart,
+      scheduledEnd: resolvedEnd,
       status: resolvedStatus,
       description: json['description'] as String? ?? '',
       priority: json['priority'] as String? ?? 'Srednji',
