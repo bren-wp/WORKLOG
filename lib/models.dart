@@ -1,21 +1,41 @@
 enum JobStatus { planned, active, completed }
 
 class Client {
-  const Client({
+  Client({
+    String? id,
     required this.name,
     required this.type,
     required this.phone,
     required this.email,
     required this.address,
-  });
+  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
+  final String id;
   final String name;
   final String type;
   final String phone;
   final String email;
   final String address;
 
+  Client copyWith({
+    String? name,
+    String? type,
+    String? phone,
+    String? email,
+    String? address,
+  }) {
+    return Client(
+      id: id,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      address: address ?? this.address,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
+        'id': id,
         'name': name,
         'type': type,
         'phone': phone,
@@ -25,11 +45,171 @@ class Client {
 
   factory Client.fromJson(Map<String, dynamic> json) {
     return Client(
+      id: json['id'] as String?,
       name: json['name'] as String? ?? '',
       type: json['type'] as String? ?? 'Privatna osoba',
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String? ?? '',
       address: json['address'] as String? ?? '',
+    );
+  }
+}
+
+class CompanyProfile {
+  const CompanyProfile({
+    this.name = 'WORKLOG servis',
+    this.activity = 'Instalacije i klimatizacija',
+    this.phone = '',
+    this.email = '',
+    this.address = '',
+    this.oib = '',
+  });
+
+  final String name;
+  final String activity;
+  final String phone;
+  final String email;
+  final String address;
+  final String oib;
+
+  CompanyProfile copyWith({
+    String? name,
+    String? activity,
+    String? phone,
+    String? email,
+    String? address,
+    String? oib,
+  }) {
+    return CompanyProfile(
+      name: name ?? this.name,
+      activity: activity ?? this.activity,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      address: address ?? this.address,
+      oib: oib ?? this.oib,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'activity': activity,
+        'phone': phone,
+        'email': email,
+        'address': address,
+        'oib': oib,
+      };
+
+  factory CompanyProfile.fromJson(Map<String, dynamic> json) {
+    return CompanyProfile(
+      name: json['name'] as String? ?? 'WORKLOG servis',
+      activity: json['activity'] as String? ?? 'Instalacije i klimatizacija',
+      phone: json['phone'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      address: json['address'] as String? ?? '',
+      oib: json['oib'] as String? ?? '',
+    );
+  }
+}
+
+class TeamMember {
+  TeamMember({
+    String? id,
+    required this.name,
+    required this.role,
+    required this.phone,
+    required this.email,
+    this.active = true,
+  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
+
+  final String id;
+  final String name;
+  final String role;
+  final String phone;
+  final String email;
+  final bool active;
+
+  TeamMember copyWith({
+    String? name,
+    String? role,
+    String? phone,
+    String? email,
+    bool? active,
+  }) {
+    return TeamMember(
+      id: id,
+      name: name ?? this.name,
+      role: role ?? this.role,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      active: active ?? this.active,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'role': role,
+        'phone': phone,
+        'email': email,
+        'active': active,
+      };
+
+  factory TeamMember.fromJson(Map<String, dynamic> json) {
+    return TeamMember(
+      id: json['id'] as String?,
+      name: json['name'] as String? ?? '',
+      role: json['role'] as String? ?? 'Tehničar',
+      phone: json['phone'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      active: json['active'] as bool? ?? true,
+    );
+  }
+}
+
+class AppPreferences {
+  const AppPreferences({
+    this.notificationsEnabled = true,
+    this.autoSaveEnabled = true,
+    this.biometricLockEnabled = false,
+    this.compactCards = false,
+  });
+
+  final bool notificationsEnabled;
+  final bool autoSaveEnabled;
+  final bool biometricLockEnabled;
+  final bool compactCards;
+
+  AppPreferences copyWith({
+    bool? notificationsEnabled,
+    bool? autoSaveEnabled,
+    bool? biometricLockEnabled,
+    bool? compactCards,
+  }) {
+    return AppPreferences(
+      notificationsEnabled:
+          notificationsEnabled ?? this.notificationsEnabled,
+      autoSaveEnabled: autoSaveEnabled ?? this.autoSaveEnabled,
+      biometricLockEnabled:
+          biometricLockEnabled ?? this.biometricLockEnabled,
+      compactCards: compactCards ?? this.compactCards,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'notificationsEnabled': notificationsEnabled,
+        'autoSaveEnabled': autoSaveEnabled,
+        'biometricLockEnabled': biometricLockEnabled,
+        'compactCards': compactCards,
+      };
+
+  factory AppPreferences.fromJson(Map<String, dynamic> json) {
+    return AppPreferences(
+      notificationsEnabled:
+          json['notificationsEnabled'] as bool? ?? true,
+      autoSaveEnabled: json['autoSaveEnabled'] as bool? ?? true,
+      biometricLockEnabled:
+          json['biometricLockEnabled'] as bool? ?? false,
+      compactCards: json['compactCards'] as bool? ?? false,
     );
   }
 }
@@ -87,7 +267,7 @@ class WorkJob {
 
   final String id;
   final String title;
-  final Client client;
+  Client client;
   final String location;
   final String dateLabel;
   final String timeLabel;
