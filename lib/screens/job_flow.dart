@@ -322,7 +322,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 leading: const CircleAvatar(child: Icon(Icons.inventory_2_outlined)),
                 title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text(item.quantity),
-                trailing: Text(item.price.toStringAsFixed(2).replaceAll(".", ",") + " €"),
+                trailing: Text("${item.price.toStringAsFixed(2).replaceAll(".", ",")} €"),
               ),
             ),
           ),
@@ -336,7 +336,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 children: [
                   const Text("Ukupna vrijednost", style: TextStyle(color: WorklogColors.muted)),
                   const Spacer(),
-                  Text(total.toStringAsFixed(2).replaceAll(".", ",") + " €", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                  Text("${total.toStringAsFixed(2).replaceAll(".", ",")} €", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
                 ],
               ),
             ),
@@ -719,7 +719,7 @@ class ReportPreviewStep extends StatelessWidget {
           ["Datum", job.dateLabel],
         ]),
         ReportBlock(title: "Odrađeni sati", rows: [
-          ["Ukupno", (minutes ~/ 60).toString() + " h " + (minutes % 60).toString() + " min"],
+          ["Ukupno", "${minutes ~/ 60} h ${minutes % 60} min"],
         ]),
         ReportBlock(
           title: "Materijal",
@@ -828,7 +828,7 @@ class _SendReportScreenState extends State<SendReportScreen> {
                     const SizedBox(height: 12),
                     const Text("Izvještaj uspješno poslan!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
-                    Text("Zapisnik za " + widget.job.client.name + " označen je kao poslan.", textAlign: TextAlign.center, style: const TextStyle(color: WorklogColors.muted)),
+                    Text("Zapisnik za ${widget.job.client.name} označen je kao poslan.", textAlign: TextAlign.center, style: const TextStyle(color: WorklogColors.muted)),
                   ],
                 ),
               ),
