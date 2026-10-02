@@ -447,7 +447,7 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> exportSnapshot() => {
-    'schemaVersion': 7,
+    'schemaVersion': 8,
     'companyProfile': companyProfile.toJson(),
     'preferences': preferences.toJson(),
     'clients': clients.map((client) => client.toJson()).toList(),
@@ -495,7 +495,7 @@ class AppState extends ChangeNotifier {
     if (service == null) return;
     try {
       await service.writeState({
-        'schemaVersion': 7,
+        'schemaVersion': 8,
         'onboardingComplete': onboardingComplete,
         'profileReady': profileReady,
         'companyProfile': companyProfile.toJson(),

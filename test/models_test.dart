@@ -32,6 +32,13 @@ void main() {
         MaterialItem(name: 'Filter', quantity: '1 kom', price: 18),
       ],
       notes: ['Provjeren tlak.'],
+      checklist: [
+        ChecklistItem(
+          id: 'check-1',
+          label: 'Provjeriti spojeve',
+          completed: true,
+        ),
+      ],
       beforePhotoPaths: ['/tmp/prije.jpg'],
       afterPhotoPaths: ['/tmp/poslije.jpg'],
       signaturePath: '/tmp/potpis.png',
@@ -53,6 +60,9 @@ void main() {
     expect(restored.totalWorkedMinutes, 120);
     expect(restored.materials.single.name, 'Filter');
     expect(restored.notes.single, 'Provjeren tlak.');
+    expect(restored.checklist.single.id, 'check-1');
+    expect(restored.checklist.single.label, 'Provjeriti spojeve');
+    expect(restored.checklist.single.completed, isTrue);
     expect(restored.beforePhotoPaths.single, '/tmp/prije.jpg');
     expect(restored.afterPhotoPaths.single, '/tmp/poslije.jpg');
     expect(restored.signaturePath, '/tmp/potpis.png');
@@ -112,6 +122,7 @@ void main() {
     expect(restored.scheduledStart, DateTime(2026, 3, 12, 8, 15));
     expect(restored.scheduledEnd, DateTime(2026, 3, 12, 9, 45));
     expect(restored.timeEntries, isEmpty);
+    expect(restored.checklist, isEmpty);
     expect(restored.totalWorkedMinutes, 42);
   });
 

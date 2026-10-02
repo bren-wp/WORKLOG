@@ -136,7 +136,7 @@ void main() {
     expect(state.unreadActivityCount, 0);
 
     final snapshot = state.exportSnapshot();
-    expect(snapshot['schemaVersion'], 7);
+    expect(snapshot['schemaVersion'], 8);
     expect(snapshot['messages'], isA<List>());
     expect(snapshot['activityItems'], isA<List>());
   });
