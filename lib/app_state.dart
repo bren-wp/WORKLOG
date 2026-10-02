@@ -302,10 +302,26 @@ class AppState extends ChangeNotifier {
     _schedulePersist();
   }
 
-  void removeTeamMember(String memberId) {
+  bool removeTeamMember(String memberId) {
+    final hasOpenJobs = jobs.any(
+      (job) =>
+          job.assignedMemberId == memberId &&
+          job.status != JobStatus.completed,
+    );
+    if (hasOpenJobs) return false;
+
     teamMembers.removeWhere((member) => member.id == memberId);
     notifyListeners();
     _schedulePersist();
+    return true;
+  }
+
+  TeamMember? teamMemberById(String? memberId) {
+    if (memberId == null || memberId.isEmpty) return null;
+    for (final member in teamMembers) {
+      if (member.id == memberId) return member;
+    }
+    return null;
   }
 
   void updatePreferences(AppPreferences value) {
