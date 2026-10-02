@@ -719,8 +719,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
-          Card(
-            child: const ListTile(
+          const Card(
+            child: ListTile(
               leading: Icon(
                 Icons.lock_outline_rounded,
                 color: WorklogColors.success,
