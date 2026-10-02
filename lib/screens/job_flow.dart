@@ -12,6 +12,7 @@ import '../brand.dart';
 import '../models.dart';
 import '../worklog_theme.dart';
 import '../services/device_services.dart';
+import '../services/notification_service.dart';
 import '../services/pdf_report_service.dart';
 
 class NewJobScreen extends StatefulWidget {
@@ -28,6 +29,7 @@ class _NewJobScreenState extends State<NewJobScreen> {
   final description = TextEditingController(text: "Redovni servis i provjera rada.");
   late Client selectedClient;
   String priority = "Srednji";
+  String assignedMemberId = "";
 
   @override
   void initState() {
@@ -61,6 +63,31 @@ class _NewJobScreenState extends State<NewJobScreen> {
             ],
           ),
           const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: assignedMemberId,
+            decoration: const InputDecoration(
+              labelText: "Dodijeli članu tima",
+              prefixIcon: Icon(Icons.engineering_outlined),
+            ),
+            items: [
+              const DropdownMenuItem(
+                value: "",
+                child: Text("Nije dodijeljeno"),
+              ),
+              ...widget.state.teamMembers
+                  .where((member) => member.active)
+                  .map(
+                    (member) => DropdownMenuItem(
+                      value: member.id,
+                      child: Text(member.name),
+                    ),
+                  ),
+            ],
+            onChanged: (value) => setState(
+              () => assignedMemberId = value ?? "",
+            ),
+          ),
+          const SizedBox(height: 12),
           TextField(controller: description, minLines: 3, maxLines: 5, decoration: const InputDecoration(labelText: "Opis posla")),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
@@ -84,6 +111,11 @@ class _NewJobScreenState extends State<NewJobScreen> {
                     status: JobStatus.planned,
                     description: description.text.trim(),
                     priority: priority,
+                    assignedMemberId:
+                        assignedMemberId.isEmpty ? null : assignedMemberId,
+                    assignedMemberName: widget.state
+                        .teamMemberById(assignedMemberId)
+                        ?.name,
                   ),
                 );
                 Navigator.pop(context);
@@ -113,7 +145,18 @@ class JobDetailScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Align(alignment: Alignment.centerLeft, child: Chip(label: Text(job.statusLabel))),
           const SizedBox(height: 14),
-          InfoTile(icon: Icons.person_outline_rounded, title: job.client.name, subtitle: job.client.phone),
+          InfoTile(
+            icon: Icons.person_outline_rounded,
+            title: job.client.name,
+            subtitle: job.client.phone,
+          ),
+          InfoTile(
+            icon: Icons.engineering_outlined,
+            title: state.teamMemberById(job.assignedMemberId)?.name ??
+                job.assignedMemberName ??
+                "Nije dodijeljeno",
+            subtitle: "Terenski tehničar",
+          ),
           InfoTile(icon: Icons.location_on_outlined, title: job.location, subtitle: "Otvori navigaciju"),
           InfoTile(icon: Icons.calendar_month_outlined, title: job.dateLabel, subtitle: job.timeLabel),
           const SizedBox(height: 12),
@@ -250,13 +293,34 @@ class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
     super.dispose();
   }
 
-  void toggle() {
+  Future<void> toggle() async {
     if (running) {
       timer?.cancel();
       setState(() => running = false);
-    } else {
-      timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() => seconds++));
-      setState(() => running = true);
+      return;
+    }
+
+    final wasPlanned = widget.job.status == JobStatus.planned;
+    if (wasPlanned) {
+      widget.job.status = JobStatus.active;
+      widget.state.updateJob();
+    }
+
+    timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => setState(() => seconds++),
+    );
+    setState(() => running = true);
+
+    if (wasPlanned && widget.state.preferences.notificationsEnabled) {
+      try {
+        await WorklogNotificationService.instance.showJobStarted(
+          jobTitle: widget.job.title,
+          clientName: widget.job.client.name,
+        );
+      } catch (_) {
+        // Timer mora nastaviti raditi čak i ako OS odbije obavijest.
+      }
     }
   }
 
