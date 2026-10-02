@@ -1302,19 +1302,121 @@ class NotesScreen extends StatefulWidget {
 
 class _NotesScreenState extends State<NotesScreen> {
   final note = TextEditingController();
+  final checklistItem = TextEditingController();
+
+  @override
+  void dispose() {
+    note.dispose();
+    checklistItem.dispose();
+    super.dispose();
+  }
+
+  void addNote() {
+    final value = note.text.trim();
+    if (value.isEmpty) return;
+    setState(() => widget.job.notes.add(value));
+    note.clear();
+    widget.state.updateJob();
+  }
+
+  void removeNote(String value) {
+    setState(() => widget.job.notes.remove(value));
+    widget.state.updateJob();
+  }
+
+  void addChecklistItem() {
+    final value = checklistItem.text.trim();
+    if (value.isEmpty) return;
+    setState(
+      () => widget.job.checklist.add(ChecklistItem(label: value)),
+    );
+    checklistItem.clear();
+    widget.state.updateJob();
+  }
+
+  void toggleChecklistItem(ChecklistItem item, bool completed) {
+    setState(() => item.completed = completed);
+    widget.state.updateJob();
+  }
+
+  void removeChecklistItem(ChecklistItem item) {
+    setState(() => widget.job.checklist.removeWhere((entry) => entry.id == item.id));
+    widget.state.updateJob();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final photoCount =
+        widget.job.beforePhotoPaths.length + widget.job.afterPhotoPaths.length;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Bilješke")),
+      appBar: AppBar(title: const Text("Bilješke i kontrolna lista")),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
+          const SectionTitle("Kontrolna lista"),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: checklistItem,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => addChecklistItem(),
+                  decoration: const InputDecoration(
+                    hintText: "Dodaj stavku kontrolne liste...",
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                onPressed: addChecklistItem,
+                tooltip: "Dodaj stavku",
+                icon: const Icon(Icons.add_task_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (widget.job.checklist.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  "Kontrolna lista je prazna. Dodaj stavke koje su stvarno potrebne za ovaj posao.",
+                  style: TextStyle(color: WorklogColors.muted),
+                ),
+              ),
+            )
+          else
+            ...widget.job.checklist.map(
+              (item) => Card(
+                child: CheckboxListTile(
+                  value: item.completed,
+                  onChanged: (value) =>
+                      toggleChecklistItem(item, value ?? item.completed),
+                  title: Text(
+                    item.label,
+                    style: TextStyle(
+                      decoration:
+                          item.completed ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  secondary: IconButton(
+                    tooltip: "Ukloni stavku",
+                    onPressed: () => removeChecklistItem(item),
+                    icon: const Icon(Icons.delete_outline_rounded),
+                  ),
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ),
+            ),
+          const SectionTitle("Bilješke"),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: note,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => addNote(),
                   decoration: const InputDecoration(
                     hintText: "Dodaj bilješku...",
                   ),
@@ -1322,85 +1424,60 @@ class _NotesScreenState extends State<NotesScreen> {
               ),
               const SizedBox(width: 8),
               IconButton.filled(
-                onPressed: () {
-                  if (note.text.trim().isEmpty) return;
-                  setState(() => widget.job.notes.add(note.text.trim()));
-                  note.clear();
-                  widget.state.updateJob();
-                },
+                onPressed: addNote,
+                tooltip: "Dodaj bilješku",
                 icon: const Icon(Icons.send_rounded),
               ),
             ],
           ),
-          const SectionTitle("Kontrolna lista"),
-          const CheckRow("Očistiti filtere", true),
-          const CheckRow("Provjeriti tlak plina", true),
-          const CheckRow("Očistiti vanjsku jedinicu", true),
-          const CheckRow("Provjeriti električne spojeve", false),
-          const CheckRow("Testirati rad uređaja", false),
-          const SectionTitle("Bilješke"),
+          const SizedBox(height: 10),
           if (widget.job.notes.isEmpty)
             const Text(
               "Još nema bilješki.",
               style: TextStyle(color: WorklogColors.muted),
-            ),
-          ...widget.job.notes.map(
-            (item) => Card(
-              child: ListTile(
-                leading: const Icon(Icons.note_alt_outlined),
-                title: Text(item),
+            )
+          else
+            ...widget.job.notes.map(
+              (item) => Card(
+                child: ListTile(
+                  leading: const Icon(Icons.note_alt_outlined),
+                  title: Text(item),
+                  trailing: IconButton(
+                    tooltip: "Ukloni bilješku",
+                    onPressed: () => removeNote(item),
+                    icon: const Icon(Icons.delete_outline_rounded),
+                  ),
+                ),
               ),
             ),
-          ),
           const SectionTitle("Fotografije s terena"),
-          const Row(
-            children: [
-              Expanded(
-                child: PhotoPlaceholder(
-                  icon: Icons.ac_unit_rounded,
-                  label: "Vanjska jedinica",
+          Card(
+            child: ListTile(
+              leading: const Icon(
+                Icons.photo_library_outlined,
+                color: WorklogColors.cyan,
+              ),
+              title: Text(
+                photoCount == 0
+                    ? "Još nema fotografija"
+                    : "$photoCount spremljenih fotografija",
+              ),
+              subtitle: Text(
+                "Prije: ${widget.job.beforePhotoPaths.length} • Poslije: ${widget.job.afterPhotoPaths.length}",
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => BeforeAfterScreen(
+                    state: widget.state,
+                    job: widget.job,
+                  ),
                 ),
               ),
-              SizedBox(width: 10),
-              Expanded(
-                child: PhotoPlaceholder(
-                  icon: Icons.handyman_rounded,
-                  label: "Radovi",
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.mic_none_rounded),
-            label: const Text("Snimi glasovnu bilješku"),
+            ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class CheckRow extends StatefulWidget {
-  const CheckRow(this.label, this.initial, {super.key});
-  final String label;
-  final bool initial;
-
-  @override
-  State<CheckRow> createState() => _CheckRowState();
-}
-
-class _CheckRowState extends State<CheckRow> {
-  late bool value = widget.initial;
-
-  @override
-  Widget build(BuildContext context) {
-    return CheckboxListTile(
-      value: value,
-      onChanged: (next) => setState(() => value = next ?? value),
-      title: Text(widget.label),
-      controlAffinity: ListTileControlAffinity.leading,
     );
   }
 }
