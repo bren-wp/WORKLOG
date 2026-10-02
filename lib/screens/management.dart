@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -661,9 +662,11 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     if (storage == null || busy) return;
     setState(() => busy = true);
     try {
-      final bytes = utf8.encode(
-        const JsonEncoder.withIndent('  ').convert(
-          widget.state.exportSnapshot(),
+      final bytes = Uint8List.fromList(
+        utf8.encode(
+          const JsonEncoder.withIndent('  ').convert(
+            widget.state.exportSnapshot(),
+          ),
         ),
       );
       final path = await storage.persistBytes(
