@@ -1,6 +1,6 @@
 # WORKLOG — Store Compliance
 
-Stanje za WORKLOG 0.8.0. Dokument je tehnička pomoć za Google Play i App Store objavu i mora se ponovno provjeriti prije svakog javnog izdanja.
+Stanje za WORKLOG 0.9.0. Dokument je tehnička pomoć za Google Play i App Store objavu i mora se ponovno provjeriti prije svakog javnog izdanja.
 
 ## Android / Google Play
 
@@ -34,6 +34,18 @@ Potrebne GitHub Actions tajne:
 
 Keystore i lozinke ne smiju se commitati u Git.
 
+### Google Play screenshot paket
+
+WORKLOG čuva zaseban Android phone set u `store/android/screenshots/phone/`:
+
+- 1080×1920 px
+- portrait 9:16
+- najmanje četiri stvarna Flutter UI prikaza
+- 24-bit RGB PNG bez alpha kanala
+- testni podaci koriste se samo tijekom screenshot capture testa
+
+Dimenzije i PNG format automatski se provjeravaju prije commita store materijala.
+
 ## iOS / App Store
 
 Projekt generira:
@@ -48,6 +60,15 @@ Projekt generira:
 Apple trenutačno zahtijeva da App Store Connect upload bude izgrađen s Xcode 26 ili novijim i iOS 26 SDK-om ili novijim. Od rujna 2026. upload mora ciljati iOS 13 ili noviji.
 
 Standardni CI zato eksplicitno provjerava Xcode i iOS SDK prije no-codesign release builda.
+
+### App Store screenshot paketi
+
+WORKLOG čuva dva zasebna Apple seta:
+
+- iPhone 6.9": 1320×2868 px u `store/ios/screenshots/iphone-6.9/`
+- iPad 13": 2064×2752 px u `store/ios/screenshots/ipad-13/`
+
+Screenshotovi nastaju renderiranjem stvarnih Flutter widgeta, normaliziraju se na 24-bit RGB PNG bez alpha kanala i zatim prolaze automatsku provjeru dimenzija.
 
 ### TestFlight i potpisani IPA
 
