@@ -261,9 +261,175 @@ class AppState extends ChangeNotifier {
         job.client = updated;
       }
     }
+    _recordActivity(
+      title: 'Klijent ažuriran',
+      subtitle: updated.name,
+      kind: 'client',
+    );
     notifyListeners();
     _schedulePersist();
   }
+
+  List<ClientDuplicateGroup> findDuplicateClientGroups() {
+    if (clients.length < 2) return const [];
+
+    final adjacency = <String, Set<String>>{
+      for (final client in clients) client.id: <String>{},
+    };
+    final pairReasons = <String, String>{};
+
+    for (var leftIndex = 0; leftIndex < clients.length; leftIndex++) {
+      for (
+        var rightIndex = leftIndex + 1;
+        rightIndex < clients.length;
+        rightIndex++
+      ) {
+        final left = clients[leftIndex];
+        final right = clients[rightIndex];
+        final reason = _clientDuplicateReason(left, right);
+        if (reason == null) continue;
+        adjacency[left.id]!.add(right.id);
+        adjacency[right.id]!.add(left.id);
+        pairReasons[_clientPairKey(left.id, right.id)] = reason;
+      }
+    }
+
+    final byId = {for (final client in clients) client.id: client};
+    final visited = <String>{};
+    final groups = <ClientDuplicateGroup>[];
+
+    for (final client in clients) {
+      if (visited.contains(client.id) || adjacency[client.id]!.isEmpty) {
+        continue;
+      }
+
+      final stack = <String>[client.id];
+      final memberIds = <String>{};
+      while (stack.isNotEmpty) {
+        final current = stack.removeLast();
+        if (!visited.add(current)) continue;
+        memberIds.add(current);
+        stack.addAll(adjacency[current]!.where((id) => !visited.contains(id)));
+      }
+
+      if (memberIds.length < 2) continue;
+      final reasons = <String>{};
+      final ids = memberIds.toList();
+      for (var i = 0; i < ids.length; i++) {
+        for (var j = i + 1; j < ids.length; j++) {
+          final reason = pairReasons[_clientPairKey(ids[i], ids[j])];
+          if (reason != null) reasons.add(reason);
+        }
+      }
+
+      final members = ids
+          .map((id) => byId[id])
+          .whereType<Client>()
+          .toList()
+        ..sort(
+          (a, b) => normalizeSearchValue(a.name)
+              .compareTo(normalizeSearchValue(b.name)),
+        );
+
+      groups.add(
+        ClientDuplicateGroup(
+          clients: members,
+          reason: reasons.join(' • '),
+        ),
+      );
+    }
+
+    return groups;
+  }
+
+  bool mergeClients({
+    required String keepClientId,
+    required String removeClientId,
+  }) {
+    if (keepClientId == removeClientId) return false;
+
+    final keepIndex = clients.indexWhere((client) => client.id == keepClientId);
+    final removeIndex =
+        clients.indexWhere((client) => client.id == removeClientId);
+    if (keepIndex < 0 || removeIndex < 0) return false;
+
+    final keep = clients[keepIndex];
+    final duplicate = clients[removeIndex];
+    final merged = keep.copyWith(
+      phone: keep.phone.trim().isEmpty ? duplicate.phone : keep.phone,
+      email: keep.email.trim().isEmpty ? duplicate.email : keep.email,
+      address: keep.address.trim().isEmpty ? duplicate.address : keep.address,
+      oib: keep.oib.trim().isEmpty ? duplicate.oib : keep.oib,
+    );
+
+    clients[keepIndex] = merged;
+
+    for (final job in jobs) {
+      if (job.client.id == keepClientId || job.client.id == removeClientId) {
+        job.client = merged;
+      }
+    }
+
+    for (var index = 0; index < messages.length; index++) {
+      final message = messages[index];
+      if (message.clientId != removeClientId) continue;
+      messages[index] = ConversationMessage(
+        id: message.id,
+        clientId: keepClientId,
+        text: message.text,
+        mine: message.mine,
+        createdAt: message.createdAt,
+      );
+    }
+
+    clients.removeWhere((client) => client.id == removeClientId);
+    _recordActivity(
+      title: 'Klijenti spojeni',
+      subtitle: '${duplicate.name} → ${merged.name}',
+      kind: 'client',
+    );
+    notifyListeners();
+    _schedulePersist();
+    return true;
+  }
+
+  String? _clientDuplicateReason(Client left, Client right) {
+    final leftOib = left.oib.trim();
+    final rightOib = right.oib.trim();
+    if (leftOib.isNotEmpty &&
+        leftOib == rightOib &&
+        isValidCroatianOib(leftOib)) {
+      return 'isti OIB';
+    }
+
+    final leftEmail = normalizeSearchValue(left.email);
+    final rightEmail = normalizeSearchValue(right.email);
+    if (leftEmail.isNotEmpty && leftEmail == rightEmail) {
+      return 'ista e-pošta';
+    }
+
+    final leftPhone = normalizePhoneValue(left.phone);
+    final rightPhone = normalizePhoneValue(right.phone);
+    if (leftPhone.length >= 6 && leftPhone == rightPhone) {
+      return 'isti telefon';
+    }
+
+    final leftName = normalizeSearchValue(left.name);
+    final rightName = normalizeSearchValue(right.name);
+    final leftAddress = normalizeSearchValue(left.address);
+    final rightAddress = normalizeSearchValue(right.address);
+    if (leftName.isNotEmpty &&
+        leftName == rightName &&
+        leftAddress.isNotEmpty &&
+        leftAddress == rightAddress) {
+      return 'isti naziv i adresa';
+    }
+
+    return null;
+  }
+
+  String _clientPairKey(String left, String right) =>
+      left.compareTo(right) <= 0 ? '$left|$right' : '$right|$left';
 
   bool removeClient(String clientId) {
     final hasJobs = jobs.any((job) => job.client.id == clientId);
@@ -447,7 +613,7 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> exportSnapshot() => {
-    'schemaVersion': 8,
+    'schemaVersion': 9,
     'companyProfile': companyProfile.toJson(),
     'preferences': preferences.toJson(),
     'clients': clients.map((client) => client.toJson()).toList(),
@@ -495,7 +661,7 @@ class AppState extends ChangeNotifier {
     if (service == null) return;
     try {
       await service.writeState({
-        'schemaVersion': 8,
+        'schemaVersion': 9,
         'onboardingComplete': onboardingComplete,
         'profileReady': profileReady,
         'companyProfile': companyProfile.toJson(),
