@@ -80,7 +80,7 @@ class PdfReportService {
           _section(
             'Evidencija rada',
             [
-              _row('Ukupno evidentirano', _duration(job.minutesWorked)),
+              _row('Ukupno evidentirano', _duration(job.totalWorkedMinutes)),
             ],
           ),
           _section(
