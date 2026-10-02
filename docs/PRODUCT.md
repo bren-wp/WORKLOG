@@ -4,6 +4,25 @@
 
 WORKLOG je Android i iOS aplikacija za obrtnike, servisere, montažere i terenske timove. Cilj je da jedan posao ima jedan pouzdan zapis: klijent, lokacija, termin, vrijeme rada, materijal, fotografije, napomene, potpis i završni izvještaj.
 
+## Verzija 0.7.0
+
+Verzija 0.7.0 uklanja lažno početno seedanje podataka i pretvara evidenciju vremena u trajni model koji preživljava zatvaranje ekrana i ponovno pokretanje aplikacije.
+
+### Novo u 0.7.0
+
+- puni statusni lifecycle: planirano, potvrđeno, na putu, u tijeku, pauzirano, završeno i otkazano
+- trajni radni intervali s početkom i završetkom
+- aktivni interval ostaje aktivan nakon ponovnog učitavanja spremljenog stanja
+- više vremenskih intervala po poslu
+- ručna korekcija vremena uz obavezan razlog
+- schema v7 uz kompatibilnost sa starim `minutesWorked` zapisima
+- dashboard više nema hardkodirane sate, zapisnike ni fiksni datum
+- PDF i pregled zapisnika koriste stvarno evidentirano vrijeme
+- produkcijsko stanje više ne ubacuje demo klijente, poslove, tim ni lažne kontakt podatke
+- CI provjerava format, analizu i testove te gradi APK, AAB i iOS no-codesign artefakt uz eksplicitnu provjeru da datoteke stvarno postoje
+
+Napomena: serverska autentikacija, višekorisnička sinkronizacija i potpisani store artefakti i dalje zahtijevaju stvarnu produkcijsku infrastrukturu i privatne vjerodajnice vlasnika; aplikacija ih ne predstavlja kao dovršene.
+
 ## Verzija 0.6.0
 
 Aplikacija više nije samo UI prototip. Verzija 0.6.0 uklanja statične demo poruke i obavijesti: razgovori se lokalno spremaju po klijentu, a obavijesti su trajni dnevnik stvarnih događaja u aplikaciji.
