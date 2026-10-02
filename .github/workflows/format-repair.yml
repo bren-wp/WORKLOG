@@ -1,0 +1,42 @@
+name: WORKLOG Format Repair
+
+on:
+  push:
+    branches:
+      - develop/worklog-0.7.0-timer-lifecycle
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop/worklog-0.7.0-timer-lifecycle
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Reproduciraj CI formatter kontekst
+        run: |
+          flutter create --org com.brendigo --project-name worklog --platforms android,ios .
+          python3 tool/configure_platforms.py
+          flutter pub get
+      - name: Formatiraj widget test
+        run: dart format test/widget_test.dart
+      - name: Commitaj formatter rezultat
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- test/widget_test.dart; then
+            echo "Nema promjena."
+            exit 0
+          fi
+          git config user.name "WORKLOG CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add test/widget_test.dart
+          git commit -m "style: primijeni formatter na widget test"
+          git push origin HEAD:develop/worklog-0.7.0-timer-lifecycle
