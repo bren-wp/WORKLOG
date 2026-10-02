@@ -1308,7 +1308,7 @@ class _SendReportScreenState extends State<SendReportScreen> {
     setState(() => busy = true);
     try {
       final file = await _ensureReport();
-      if (file == null || !mounted) return;
+      if (file == null || !mounted || !shareContext.mounted) return;
 
       final result = await PdfReportService(storage).share(
         shareContext,
