@@ -97,7 +97,7 @@ class AuthService {
         final data = await _post('auth/refresh', {
           'refresh_token': refreshToken,
         });
-        return _persistSession(data);
+        return await _persistSession(data);
       } on AuthException {
         await clearLocalSession();
         return null;
