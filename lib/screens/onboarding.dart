@@ -38,31 +38,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: (value) => setState(() => page = value),
                 itemBuilder: (context, index) {
                   final slide = slides[index];
-                  return Padding(
-                    padding: const EdgeInsets.all(28),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const WorklogMark(size: 108),
-                        const SizedBox(height: 24),
-                        const WorklogWordmark(),
-                        const SizedBox(height: 38),
-                        Container(
-                          width: 92,
-                          height: 92,
+                  return ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                    children: [
+                      const SizedBox(height: 8),
+                      const Center(child: WorklogMark(size: 96)),
+                      const SizedBox(height: 20),
+                      const Center(child: WorklogWordmark()),
+                      const SizedBox(height: 28),
+                      Center(
+                        child: Container(
+                          width: 82,
+                          height: 82,
                           decoration: BoxDecoration(
                             color: WorklogColors.surface2,
-                            borderRadius: BorderRadius.circular(28),
+                            borderRadius: BorderRadius.circular(24),
                             border: Border.all(color: WorklogColors.border),
                           ),
-                          child: Icon(slide.$3, color: WorklogColors.primary, size: 44),
+                          child: Icon(slide.$3, color: WorklogColors.primary, size: 40),
                         ),
-                        const SizedBox(height: 28),
-                        Text(slide.$1, textAlign: TextAlign.center, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 14),
-                        Text(slide.$2, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, height: 1.45, color: WorklogColors.muted)),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(slide.$1, textAlign: TextAlign.center, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 12),
+                      Text(slide.$2, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, height: 1.4, color: WorklogColors.muted)),
+                      const SizedBox(height: 12),
+                    ],
                   );
                 },
               ),
