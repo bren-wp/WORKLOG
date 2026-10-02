@@ -46,11 +46,14 @@ jobs:
           cp tool/generated-screenshots/iphone-6.9/*.png store/ios/screenshots/iphone-6.9/
           cp tool/generated-screenshots/ipad-13/*.png store/ios/screenshots/ipad-13/
 
-      - name: Ukloni alpha kanal i provjeri store PNG datoteke
+      - name: Ukloni alpha kanal iz store PNG datoteka
         shell: bash
         run: |
           set -euo pipefail
-          python3 tool/normalize_store_png.py             'store/android/screenshots/phone/*.png'             'store/ios/screenshots/iphone-6.9/*.png'             'store/ios/screenshots/ipad-13/*.png'
+          dart run tool/normalize_store_png.dart \
+            store/android/screenshots/phone \
+            store/ios/screenshots/iphone-6.9 \
+            store/ios/screenshots/ipad-13
 
       - name: Provjeri obavezne dimenzije
         shell: bash
