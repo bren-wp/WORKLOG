@@ -33,6 +33,8 @@ jobs:
         run: |
           set -euo pipefail
           find web -name '*.php' -print0 | xargs -0 -n1 php -l
+          node --check web/assets/app.js
+          grep -q 'Require all denied' web/.htaccess
           test -s web/database/schema.sql
           grep -q 'CREATE TABLE users' web/database/schema.sql
           grep -q 'CREATE TABLE auth_sessions' web/database/schema.sql
