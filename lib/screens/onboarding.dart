@@ -253,17 +253,17 @@ class _LoginScreenState extends State<LoginScreen> {
                               : () => setState(() => registerMode = false),
                           child: const Text('Prijava'),
                         )
-                      : FilledButton(
+                      : const FilledButton(
                           onPressed: null,
-                          child: const Text('Prijava'),
+                          child: Text('Prijava'),
                         ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: registerMode
-                      ? FilledButton(
+                      ? const FilledButton(
                           onPressed: null,
-                          child: const Text('Registracija'),
+                          child: Text('Registracija'),
                         )
                       : OutlinedButton(
                           onPressed: busy
@@ -304,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: name,
                       enabled: configured && !busy,
                       textInputAction: TextInputAction.next,
-                      autocompleteHints: const [AutofillHints.name],
+                      autofillHints: const [AutofillHints.name],
                       decoration: const InputDecoration(
                         labelText: 'Ime i prezime',
                         prefixIcon: Icon(Icons.person_outline_rounded),
