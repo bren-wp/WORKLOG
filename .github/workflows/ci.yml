@@ -19,12 +19,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
       - name: Provjeri Python alate
         run: python3 -m py_compile tool/configure_platforms.py tool/generate_brand_assets.py
+      - name: Provjeri PHP backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          find web -name '*.php' -print0 | xargs -0 -n1 php -l
+          node --check web/assets/app.js
+          grep -q 'Require all denied' web/.htaccess
+          test -s web/database/schema.sql
+          grep -q 'CREATE TABLE users' web/database/schema.sql
+          grep -q 'CREATE TABLE auth_sessions' web/database/schema.sql
       - name: Generiraj Android/iOS platformu
         run: flutter create --org com.brendigo --project-name worklog --platforms android,ios .
       - name: Konfiguriraj platforme i branding

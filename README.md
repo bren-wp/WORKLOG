@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Android-API%2024%2B-3DDC84?logo=android&logoColor=white" alt="Android">
   <img src="https://img.shields.io/badge/iOS-13%2B-111111?logo=apple&logoColor=white" alt="iOS">
   <img src="https://img.shields.io/badge/Flutter-stable-02569B?logo=flutter&logoColor=white" alt="Flutter">
-  <img src="https://img.shields.io/badge/verzija-0.10.0-3B82F6" alt="Version 0.10.0">
+  <img src="https://img.shields.io/badge/verzija-0.11.0-3B82F6" alt="Version 0.11.0">
   <img src="https://img.shields.io/badge/licenca-MIT-0B1E3A" alt="MIT License">
 </p>
 
@@ -26,7 +26,7 @@
 
 ## WORKLOG u praksi
 
-WORKLOG je Flutter aplikacija za Android i iOS namijenjena organizaciji terenskog rada. Trenutačna verzija radi **lokalno na uređaju** i ne predstavlja nepostojeći cloud/backend kao završenu funkciju.
+WORKLOG je Flutter aplikacija za Android i iOS namijenjena organizaciji terenskog rada. Verzija 0.11.0 dodaje stvarnu e-mail/lozinka registraciju i prijavu preko samostalnog `/web` backend servisa; operativni podaci i dalje ostaju lokalni dok cloud sinkronizacija nije implementirana.
 
 Aplikacija već ima stvarne radne tokove za klijente, poslove, termine, statusni lifecycle, trajnu evidenciju vremena, materijal, bilješke, kontrolne liste, fotografije prije/poslije, potpis, PDF zapisnik, lokalne obavijesti, biometrijsku zaštitu te lokalni izvoz i brisanje podataka.
 
@@ -37,7 +37,7 @@ Ove slike generira Flutter iz stvarnih produkcijskih widgeta aplikacije. Testni 
 <table>
   <tr>
     <td align="center"><strong>Onboarding</strong><br><img src="docs/screenshots/worklog-onboarding.png" width="260" alt="WORKLOG onboarding"></td>
-    <td align="center"><strong>Lokalni pristup</strong><br><img src="docs/screenshots/worklog-local-access.png" width="260" alt="WORKLOG lokalni pristup"></td>
+    <td align="center"><strong>Prijava i registracija</strong><br><img src="docs/screenshots/worklog-local-access.png" width="260" alt="WORKLOG prijava"></td>
     <td align="center"><strong>Dashboard</strong><br><img src="docs/screenshots/worklog-dashboard.png" width="260" alt="WORKLOG dashboard"></td>
   </tr>
   <tr>
@@ -60,7 +60,8 @@ Ove slike generira Flutter iz stvarnih produkcijskih widgeta aplikacije. Testni 
 - **Kalendar** — pregled termina i direktno otvaranje poslova.
 - **Globalna pretraga** — poslovi, klijenti, OIB, adrese, članovi tima i ID naloga iz jednog ekrana.
 - **Sigurnost** — lokalna biometrija ili sigurnosna šifra uređaja, privatne Android obavijesti i zabrana cleartext HTTP prometa.
-- **Privatnost** — bez analytics/ads SDK-a i bez lažnog cloud uploada u trenutnoj verziji.
+- **Autentikacija** — stvarni e-mail/lozinka backend, access/refresh sesije i sigurna pohrana tokena; bez Google/Apple prijave.
+- **Privatnost** — bez analytics/ads SDK-a i bez lažnog cloud uploada operativnih podataka.
 - **Izvoz/brisanje** — lokalni izvoz aplikacijskog stanja i brisanje WORKLOG podataka.
 
 ## Android i iOS
@@ -78,7 +79,7 @@ Ove slike generira Flutter iz stvarnih produkcijskih widgeta aplikacije. Testni 
 | Offline lokalni rad | ✅ | ✅ |
 | Produkcijski store signing | 🔐 vlasnikov keystore | 🔐 Apple vjerodajnice |
 | Cloud sinkronizacija | nije implementirana | nije implementirana |
-| Serverska autentikacija | nije implementirana | nije implementirana |
+| Serverska autentikacija | ✅ e-mail/lozinka | ✅ e-mail/lozinka |
 
 ## Branding
 
@@ -165,6 +166,10 @@ Za pravi IPA/TestFlight potreban je Apple Developer/App Store Connect pristup:
 
 Detalji: [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md)
 
+### Auth backend
+
+Backend je u [`web/`](web/) i dokumentiran u [docs/AUTH-BACKEND.md](docs/AUTH-BACKEND.md). Produkcijski build mora postaviti `WORKLOG_API_BASE_URL` na HTTPS `/api/v1` adresu.
+
 ## CI/CD
 
 `.github/workflows/ci.yml` na svakom PR-u i pushu na `main` provjerava:
@@ -206,7 +211,7 @@ Store PNG screenshotovi prolaze automatsku provjeru dimenzija i spremaju se kao 
 - [ANDROID-SIGNING.md](docs/ANDROID-SIGNING.md)
 - [TESTFLIGHT.md](docs/TESTFLIGHT.md)
 
-Trenutačna verzija nema produkcijski backend, cloud sinkronizaciju ni serversku autentikaciju. To su namjerno eksplicitno označene granice, a ne skrivene demo funkcije.
+Repozitorij sada sadrži stvarni `/web` auth backend i mobilni API klijent. Za produkcijski rad backend treba postaviti na HTTPS domenu, konfigurirati MySQL i buildati aplikaciju s `WORKLOG_API_BASE_URL`. Cloud sinkronizacija operativnih podataka još nije implementirana.
 
 ## Preuzimanja
 
@@ -237,7 +242,8 @@ GitHub Release još se ne predstavlja kao stabilni store release dok aplikacija 
 - Apple Developer certificate/provisioning/App Store Connect vrijednosti
 - Play Console i App Store Connect objava
 - javni Privacy Policy/Support URL
-- odluka i infrastruktura za produkcijsku serversku autentikaciju i cloud sync
+- produkcijski hosting/MySQL vrijednosti za postojeći `/web` auth backend
+- account deletion/export i cloud sync operativnih podataka
 
 ## Licenca
 

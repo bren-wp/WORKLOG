@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app_state.dart';
 import 'screens.dart';
+import 'services/auth_service.dart';
 import 'services/local_storage_service.dart';
 import 'services/notification_service.dart';
 import 'services/security_service.dart';
@@ -10,8 +11,12 @@ import 'worklog_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final state = AppState(storage: const LocalStorageService());
+  final state = AppState(
+    storage: const LocalStorageService(),
+    auth: AuthService(),
+  );
   await state.load();
+  await state.restoreAuthSession();
 
   try {
     await WorklogNotificationService.instance.initialize();

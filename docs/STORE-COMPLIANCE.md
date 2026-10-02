@@ -1,6 +1,6 @@
 # WORKLOG — Store Compliance
 
-Stanje za WORKLOG 0.9.0. Dokument je tehnička pomoć za Google Play i App Store objavu i mora se ponovno provjeriti prije svakog javnog izdanja.
+Stanje za WORKLOG 0.11.0. Dokument je tehnička pomoć za Google Play i App Store objavu i mora se ponovno provjeriti prije svakog javnog izdanja.
 
 ## Android / Google Play
 
@@ -85,11 +85,13 @@ Bez tih podataka WORKLOG ne tvrdi da ima potpisani IPA.
 
 Trenutna aplikacija:
 
-- nema produkcijski backend
+- ima samostalni /web backend za e-mail registraciju/prijavu i serverske sesije
+- nema Google/Apple prijavu
 - nema analytics SDK
 - nema oglasni SDK
-- nema cloud upload
-- podatke sprema lokalno
+- nema cloud upload operativnih podataka
+- poslove, klijente, fotografije i ostale radne podatke sprema lokalno
+- auth backend obrađuje ime, e-mail, password hash, session metadata, IP i user-agent
 - korisnički inicirano dijeljenje može predati PDF vanjskoj aplikaciji
 - korisnički inicirana navigacija predaje adresu vanjskom Google Mapsu
 - koristi kameru/galeriju za poslovne fotografije
@@ -107,4 +109,5 @@ Završni Data Safety i Privacy Nutrition Label odgovori moraju biti uneseni iz a
 - App Store Connect API ključ / Team ID
 - javni URL stvarne pravne politike privatnosti
 - konačni support URL / kontakt
-- produkcijski backend za stvarnu registraciju, prijavu i sinkronizaciju ako se objavljuje kao višekorisnička cloud aplikacija
+- produkcijski hosting i DB konfiguracija za postojeći `/web` auth backend
+- dovršeni account deletion/export tokovi i cloud sinkronizacija ako se proizvod objavljuje kao višekorisnička cloud aplikacija

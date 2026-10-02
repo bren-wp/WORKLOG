@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'models.dart';
+import 'services/auth_service.dart';
 import 'services/local_storage_service.dart';
 
 class AppState extends ChangeNotifier {
-  AppState({this.storage});
+  AppState({this.storage, this.auth});
 
   final LocalStorageService? storage;
+  final AuthService? auth;
   final List<Client> clients = [];
   final List<WorkJob> jobs = [];
   final List<TeamMember> teamMembers = [];
@@ -22,6 +24,11 @@ class AppState extends ChangeNotifier {
   bool onboardingComplete = false;
   bool loggedIn = false;
   bool profileReady = false;
+  bool authBusy = false;
+  String? authError;
+  AuthUser? authUser;
+
+  bool get authConfigured => auth?.isConfigured ?? false;
 
   Future<void> load() async {
     final service = storage;
@@ -141,9 +148,100 @@ class AppState extends ChangeNotifier {
     _schedulePersist();
   }
 
-  void login() {
-    loggedIn = true;
+  Future<void> restoreAuthSession() async {
+    final service = auth;
+    if (service == null || !service.isConfigured) {
+      loggedIn = false;
+      authUser = null;
+      return;
+    }
+
+    authBusy = true;
+    authError = null;
     notifyListeners();
+    try {
+      authUser = await service.restoreSession();
+      loggedIn = authUser != null;
+    } on AuthException catch (error) {
+      authError = error.message;
+      loggedIn = false;
+      authUser = null;
+    } catch (_) {
+      authError = 'WORKLOG poslužitelj trenutačno nije dostupan.';
+      loggedIn = false;
+      authUser = null;
+    } finally {
+      authBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> login({required String email, required String password}) async {
+    final service = auth;
+    if (service == null || !service.isConfigured) {
+      authError =
+          'WORKLOG API nije konfiguriran. Postavi WORKLOG_API_BASE_URL pri buildanju.';
+      notifyListeners();
+      return false;
+    }
+
+    authBusy = true;
+    authError = null;
+    notifyListeners();
+    try {
+      authUser = await service.login(email: email, password: password);
+      loggedIn = true;
+      return true;
+    } on AuthException catch (error) {
+      authError = error.message;
+      loggedIn = false;
+      return false;
+    } catch (_) {
+      authError = 'Prijava nije uspjela. Provjeri vezu s poslužiteljem.';
+      loggedIn = false;
+      return false;
+    } finally {
+      authBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final service = auth;
+    if (service == null || !service.isConfigured) {
+      authError =
+          'WORKLOG API nije konfiguriran. Postavi WORKLOG_API_BASE_URL pri buildanju.';
+      notifyListeners();
+      return false;
+    }
+
+    authBusy = true;
+    authError = null;
+    notifyListeners();
+    try {
+      authUser = await service.register(
+        name: name,
+        email: email,
+        password: password,
+      );
+      loggedIn = true;
+      return true;
+    } on AuthException catch (error) {
+      authError = error.message;
+      loggedIn = false;
+      return false;
+    } catch (_) {
+      authError = 'Registracija nije uspjela. Provjeri vezu s poslužiteljem.';
+      loggedIn = false;
+      return false;
+    } finally {
+      authBusy = false;
+      notifyListeners();
+    }
   }
 
   void setupProfile() {
@@ -632,6 +730,9 @@ class AppState extends ChangeNotifier {
     loggedIn = false;
     profileReady = false;
     activeTab = 0;
+    await auth?.clearLocalSession();
+    authUser = null;
+    authError = null;
     if (service != null) {
       await service.clearAll();
       await _persist();
@@ -639,10 +740,19 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void logout() {
-    loggedIn = false;
-    activeTab = 0;
+  Future<void> logout() async {
+    authBusy = true;
+    authError = null;
     notifyListeners();
+    try {
+      await auth?.logout();
+    } finally {
+      loggedIn = false;
+      authUser = null;
+      authBusy = false;
+      activeTab = 0;
+      notifyListeners();
+    }
   }
 
   Future<void> persistNow() => _persist();

@@ -25,21 +25,22 @@ void main() {
     expect(find.textContaining('Nema spremljenih klijenata'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('lokalni pristup ne prikazuje lažnu serversku prijavu', (
-    tester,
-  ) async {
+  testWidgets('auth ekran nema Google ni Apple prijavu', (tester) async {
     final state = AppState();
 
     await tester.pumpWidget(MaterialApp(home: LoginScreen(state: state)));
     await tester.pump();
 
-    expect(find.text('Rad na ovom uređaju'), findsOneWidget);
-    expect(find.text('Nastavi na ovom uređaju'), findsOneWidget);
-    expect(find.text('Zaboravljena lozinka?'), findsNothing);
+    expect(find.text('Prijava u WORKLOG'), findsOneWidget);
+    expect(find.text('Prijava'), findsOneWidget);
+    expect(find.text('Registracija'), findsOneWidget);
+    expect(find.textContaining('Backend kod je u /web'), findsOneWidget);
     expect(find.text('Nastavi s Googleom'), findsNothing);
     expect(find.text('Nastavi s Appleom'), findsNothing);
+    expect(find.text('Nastavi na ovom uređaju'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
   testWidgets('globalna pretraga pronalazi klijenta po OIB-u', (tester) async {
     final state = AppState();
     final client = Client(

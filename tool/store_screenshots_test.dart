@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worklog/app_state.dart';
 import 'package:worklog/models.dart';
+import 'package:worklog/services/auth_service.dart';
 import 'package:worklog/screens/onboarding.dart';
 import 'package:worklog/screens/shell.dart';
 import 'package:worklog/worklog_theme.dart';
@@ -186,7 +187,11 @@ Future<void> capturePhoneSet(
   );
   await captureStoreScreen(
     tester,
-    child: LoginScreen(state: AppState()),
+    child: LoginScreen(
+      state: AppState(
+        auth: AuthService(baseUrl: 'https://worklog.example/api/v1'),
+      ),
+    ),
     physicalSize: physicalSize,
     devicePixelRatio: devicePixelRatio,
     filePath: '$directory/worklog-local-access.png',

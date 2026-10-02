@@ -152,57 +152,244 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.state});
 
   final AppState state;
 
   @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final formKey = GlobalKey<FormState>();
+  final name = TextEditingController();
+  final email = TextEditingController();
+  final password = TextEditingController();
+
+  bool registerMode = false;
+  bool showPassword = false;
+
+  @override
+  void dispose() {
+    name.dispose();
+    email.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
+  Future<void> submit() async {
+    if (!(formKey.currentState?.validate() ?? false)) return;
+
+    final success = registerMode
+        ? await widget.state.register(
+            name: name.text.trim(),
+            email: email.text.trim(),
+            password: password.text,
+          )
+        : await widget.state.login(
+            email: email.text.trim(),
+            password: password.text,
+          );
+
+    if (!mounted || success) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(widget.state.authError ?? 'Autentikacija nije uspjela.'),
+      ),
+    );
+  }
+
+  String? validateEmail(String? value) {
+    final clean = value?.trim() ?? '';
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(clean)) {
+      return 'Unesi valjanu e-mail adresu.';
+    }
+    return null;
+  }
+
+  String? validatePassword(String? value) {
+    final clean = value ?? '';
+    if (clean.length < 10) {
+      return 'Lozinka mora imati najmanje 10 znakova.';
+    }
+    if (!RegExp(r'[A-Za-z]').hasMatch(clean) ||
+        !RegExp(r'\d').hasMatch(clean)) {
+      return 'Lozinka mora sadržavati slovo i broj.';
+    }
+    return null;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final configured = widget.state.authConfigured;
+    final busy = widget.state.authBusy;
+
     return Scaffold(
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(28),
           children: [
-            const SizedBox(height: 36),
+            const SizedBox(height: 24),
             const Center(child: WorklogWordmark()),
-            const SizedBox(height: 52),
-            const Text(
-              "Rad na ovom uređaju",
-              style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900),
+            const SizedBox(height: 40),
+            Text(
+              registerMode ? 'Izradi WORKLOG račun' : 'Prijava u WORKLOG',
+              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             const Text(
-              "WORKLOG trenutačno radi u lokalnom načinu rada. Poslovi, klijenti, fotografije i zapisnici ostaju na ovom uređaju.",
+              'Prijava i registracija koriste sigurnu WORKLOG serversku autentikaciju e-mailom i lozinkom.',
               style: TextStyle(color: WorklogColors.muted, fontSize: 16),
             ),
             const SizedBox(height: 24),
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.all(18),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.security_rounded, color: WorklogColors.cyan),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        "Cloud račun, registracija i sinkronizacija nisu aktivni dok nije povezana produkcijska serverska usluga. Lokalna biometrija može dodatno zaštititi podatke na uređaju.",
+            Row(
+              children: [
+                Expanded(
+                  child: registerMode
+                      ? OutlinedButton(
+                          onPressed: busy
+                              ? null
+                              : () => setState(() => registerMode = false),
+                          child: const Text('Prijava'),
+                        )
+                      : const FilledButton(
+                          onPressed: null,
+                          child: Text('Prijava'),
+                        ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: registerMode
+                      ? const FilledButton(
+                          onPressed: null,
+                          child: Text('Registracija'),
+                        )
+                      : OutlinedButton(
+                          onPressed: busy
+                              ? null
+                              : () => setState(() => registerMode = true),
+                          child: const Text('Registracija'),
+                        ),
+                ),
+              ],
+            ),
+            if (!configured) ...[
+              const SizedBox(height: 18),
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.dns_rounded, color: WorklogColors.cyan),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Backend kod je u /web. Za stvarnu prijavu build aplikacije mora dobiti HTTPS adresu kroz WORKLOG_API_BASE_URL. Lokalni bypass nije dopušten.',
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 54,
-              child: FilledButton.icon(
-                onPressed: state.login,
-                icon: const Icon(Icons.phone_android_rounded),
-                label: const Text("Nastavi na ovom uređaju"),
+            ],
+            const SizedBox(height: 20),
+            Form(
+              key: formKey,
+              child: Column(
+                children: [
+                  if (registerMode) ...[
+                    TextFormField(
+                      controller: name,
+                      enabled: configured && !busy,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.name],
+                      decoration: const InputDecoration(
+                        labelText: 'Ime i prezime',
+                        prefixIcon: Icon(Icons.person_outline_rounded),
+                      ),
+                      validator: (value) {
+                        final clean = value?.trim() ?? '';
+                        if (clean.length < 2 || clean.length > 120) {
+                          return 'Unesi ime od 2 do 120 znakova.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  TextFormField(
+                    controller: email,
+                    enabled: configured && !busy,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: const InputDecoration(
+                      labelText: 'E-mail',
+                      prefixIcon: Icon(Icons.alternate_email_rounded),
+                    ),
+                    validator: validateEmail,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: password,
+                    enabled: configured && !busy,
+                    obscureText: !showPassword,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: [
+                      registerMode
+                          ? AutofillHints.newPassword
+                          : AutofillHints.password,
+                    ],
+                    onFieldSubmitted: (_) =>
+                        configured && !busy ? submit() : null,
+                    decoration: InputDecoration(
+                      labelText: 'Lozinka',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        onPressed: busy
+                            ? null
+                            : () =>
+                                  setState(() => showPassword = !showPassword),
+                        icon: Icon(
+                          showPassword
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                        ),
+                      ),
+                    ),
+                    validator: validatePassword,
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: FilledButton.icon(
+                      onPressed: !configured || busy ? null : submit,
+                      icon: busy
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              registerMode
+                                  ? Icons.person_add_alt_1_rounded
+                                  : Icons.login_rounded,
+                            ),
+                      label: Text(registerMode ? 'Izradi račun' : 'Prijavi se'),
+                    ),
+                  ),
+                ],
               ),
             ),
+            if (widget.state.authError != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                widget.state.authError!,
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            ],
           ],
         ),
       ),
