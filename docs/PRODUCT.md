@@ -4,9 +4,25 @@
 
 WORKLOG je Android i iOS aplikacija za obrtnike, servisere, montažere i terenske timove. Cilj je da jedan posao ima jedan pouzdan zapis: klijent, lokacija, termin, vrijeme rada, materijal, fotografije, napomene, potpis i završni izvještaj.
 
-## Verzija 0.2.0
+## Verzija 0.3.0
 
-Aplikacija više nije samo UI prototip. Uvedene su mobilne integracije i trajna lokalna pohrana podataka.
+Aplikacija više nije samo UI prototip. Uz mobilne integracije i trajnu lokalnu pohranu, 0.3.0 uvodi stvarno upravljanje klijentima, profilom tvrtke, terenskim timom, postavkama te izvozom i brisanjem lokalnih podataka.
+
+### Novo u 0.3.0
+
+- dodavanje i uređivanje klijenata
+- sigurno brisanje klijenta samo kada nema povezanih poslova
+- pretraga klijenata po nazivu, adresi, telefonu i e-pošti
+- stabilni ID-jevi klijenata i ponovno povezivanje poslova nakon učitavanja
+- uređivanje profila tvrtke i broja zaposlenih
+- stvarno spremanje podataka profila već iz onboardinga
+- dodavanje, uređivanje, aktiviranje i uklanjanje članova terenskog tima
+- trajne korisničke postavke
+- uključivanje/isključivanje automatskog spremanja
+- uključivanje/isključivanje obavijesti i kompaktnih kartica
+- izvoz lokalnih WORKLOG podataka u JSON
+- odjava iz aplikacije
+- sigurno brisanje svih lokalnih WORKLOG podataka s potvrdom
 
 ### Implementirano
 
