@@ -4,6 +4,8 @@ import '../app_state.dart';
 import '../brand.dart';
 import '../models.dart';
 import '../worklog_theme.dart';
+import 'client_integrity.dart';
+import 'global_search.dart';
 import 'job_flow.dart';
 import 'management.dart';
 import 'support.dart';
@@ -93,6 +95,16 @@ class DashboardScreen extends StatelessWidget {
             const WorklogWordmark(compact: true),
             const Spacer(),
             IconButton(
+              tooltip: 'Globalna pretraga',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => GlobalSearchScreen(state: state),
+                ),
+              ),
+              icon: const Icon(Icons.search_rounded),
+            ),
+            IconButton(
+              tooltip: 'Obavijesti',
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => NotificationsScreen(state: state),
@@ -739,8 +751,10 @@ class _ClientsScreenState extends State<ClientsScreen> {
       return client.name.toLowerCase().contains(query) ||
           client.email.toLowerCase().contains(query) ||
           client.phone.toLowerCase().contains(query) ||
-          client.address.toLowerCase().contains(query);
+          client.address.toLowerCase().contains(query) ||
+          client.oib.toLowerCase().contains(query);
     }).toList();
+    final duplicateGroups = widget.state.findDuplicateClientGroups();
 
     return ListView(
       padding: const EdgeInsets.all(18),
@@ -785,6 +799,37 @@ class _ClientsScreenState extends State<ClientsScreen> {
           ),
         ),
         const SizedBox(height: 14),
+        if (duplicateGroups.isNotEmpty) ...[
+          Card(
+            color: WorklogColors.surface2,
+            child: ListTile(
+              leading: const Icon(
+                Icons.content_copy_rounded,
+                color: WorklogColors.warning,
+              ),
+              title: Text(
+                duplicateGroups.length == 1
+                    ? 'Pronađena je 1 grupa mogućih duplikata'
+                    : 'Pronađeno je ${duplicateGroups.length} grupa mogućih duplikata',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: const Text(
+                'Pregledaj podudaranja prije spajanja. Povijest poslova i razgovora ostaje sačuvana.',
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ClientDuplicatesScreen(state: widget.state),
+                  ),
+                );
+                if (mounted) setState(() {});
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         if (clients.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 40),
