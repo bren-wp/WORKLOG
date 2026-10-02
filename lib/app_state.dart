@@ -95,6 +95,8 @@ class AppState extends ChangeNotifier {
         status: JobStatus.active,
         description: "Redovni servis, čišćenje filtera i provjera rada.",
         minutesWorked: 135,
+        assignedMemberId: 'team-tehnicar',
+        assignedMemberName: 'Ivan Barić',
         materials: const [
           MaterialItem(
             name: "Sredstvo za čišćenje",
@@ -113,6 +115,8 @@ class AppState extends ChangeNotifier {
         dateLabel: "12. ožujka 2026.",
         timeLabel: "11:30 – 13:00",
         status: JobStatus.planned,
+        assignedMemberId: 'team-owner',
+        assignedMemberName: 'Marko Horvat',
       ),
       WorkJob(
         id: 'demo-rasvjeta',
@@ -122,6 +126,8 @@ class AppState extends ChangeNotifier {
         dateLabel: "13. ožujka 2026.",
         timeLabel: "09:00 – 12:00",
         status: JobStatus.planned,
+        assignedMemberId: 'team-tehnicar',
+        assignedMemberName: 'Ivan Barić',
       ),
       WorkJob(
         id: 'demo-instalacije',
