@@ -4,11 +4,25 @@
 
 WORKLOG je Android i iOS aplikacija za obrtnike, servisere, montažere i terenske timove. Cilj je da jedan posao ima jedan pouzdan zapis: klijent, lokacija, termin, vrijeme rada, materijal, fotografije, napomene, potpis i završni izvještaj.
 
-## Verzija 0.4.0
+## Verzija 0.5.0
 
-Aplikacija više nije samo UI prototip. Verzija 0.4.0 dodaje stvarno lokalno zaključavanje aplikacije, sistemske Android/iOS obavijesti i dodjelu poslova članovima terenskog tima, uz sve funkcije iz 0.2.0 i 0.3.0.
+Aplikacija više nije samo UI prototip. Verzija 0.5.0 uvodi stvarni raspored poslova, date/time pickere, potpuno uređivanje postojećeg naloga i funkcionalan kalendar Dan/Tjedan/Mjesec, uz sigurnost, obavijesti i timske funkcije iz ranijih verzija.
 
-### Novo u 0.4.0
+### Novo u 0.5.0
+
+- stvarni `DateTime` raspored za svaki posao
+- migracija starih hrvatskih tekstualnih datuma i vremena iz 0.4 i starijih zapisa
+- date picker i time picker pri izradi novog posla
+- validacija da završetak mora biti nakon početka
+- potpuno uređivanje naziva, klijenta, lokacije, termina, statusa, prioriteta, opisa i tehničara
+- automatsko usklađivanje tekstualnog prikaza termina sa stvarnim rasporedom
+- sortiranje poslova po terminu
+- kalendar Dan / Tjedan / Mjesec
+- navigacija na prethodno i sljedeće razdoblje te povratak na danas
+- poseban prikaz poslova bez termina
+- početni demo podaci koriste stvarne termine relativne na dan prvog pokretanja
+
+### Iz 0.4.0
 
 - lokalna autentikacija preko biometrije ili sigurnosne šifre uređaja
 - automatsko zaključavanje WORKLOG-a nakon prijave i povratka iz pozadine
@@ -43,7 +57,7 @@ Aplikacija više nije samo UI prototip. Verzija 0.4.0 dodaje stvarno lokalno zak
 - hrvatski onboarding, prijava i profil tvrtke
 - početna nadzorna ploča s aktivnim poslovima
 - filtriranje poslova prema statusu
-- tjedni raspored
+- kalendar s dnevnim, tjednim i mjesečnim prikazom
 - baza klijenata i detalj klijenta
 - razgovor s klijentom
 - izrada novog naloga

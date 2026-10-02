@@ -3,6 +3,21 @@ import 'package:worklog/app_state.dart';
 import 'package:worklog/models.dart';
 
 void main() {
+  test('početni poslovi imaju stvarni raspored', () {
+    final state = AppState();
+
+    expect(state.jobs, isNotEmpty);
+    expect(state.jobs.every((job) => job.scheduledStart != null), isTrue);
+    expect(
+      state.jobs.every(
+        (job) =>
+            job.scheduledEnd == null ||
+            job.scheduledEnd!.isAfter(job.scheduledStart!),
+      ),
+      isTrue,
+    );
+  });
+
   test('uređivanje klijenta ažurira klijenta na povezanim poslovima', () {
     final state = AppState();
     final original = state.clients.first;

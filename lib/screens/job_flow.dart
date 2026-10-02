@@ -17,6 +17,7 @@ import '../services/pdf_report_service.dart';
 
 class NewJobScreen extends StatefulWidget {
   const NewJobScreen({super.key, required this.state});
+
   final AppState state;
 
   @override
@@ -24,12 +25,17 @@ class NewJobScreen extends StatefulWidget {
 }
 
 class _NewJobScreenState extends State<NewJobScreen> {
-  final title = TextEditingController(text: "Servis klima uređaja");
-  final location = TextEditingController(text: "Zagreb, Maksimirska 12");
-  final description = TextEditingController(text: "Redovni servis i provjera rada.");
+  final formKey = GlobalKey<FormState>();
+  final title = TextEditingController();
+  final location = TextEditingController();
+  final description = TextEditingController();
+
   late Client selectedClient;
   String priority = "Srednji";
   String assignedMemberId = "";
+  DateTime selectedDate = DateTime.now();
+  TimeOfDay startTime = const TimeOfDay(hour: 8, minute: 0);
+  TimeOfDay endTime = const TimeOfDay(hour: 9, minute: 0);
 
   @override
   void initState() {
@@ -38,112 +44,597 @@ class _NewJobScreenState extends State<NewJobScreen> {
   }
 
   @override
+  void dispose() {
+    title.dispose();
+    location.dispose();
+    description.dispose();
+    super.dispose();
+  }
+
+  DateTime get scheduledStart => DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        startTime.hour,
+        startTime.minute,
+      );
+
+  DateTime get scheduledEnd => DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        endTime.hour,
+        endTime.minute,
+      );
+
+  Future<void> pickDate() async {
+    final value = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 3650)),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      helpText: 'Odaberi datum posla',
+      cancelText: 'Odustani',
+      confirmText: 'Odaberi',
+    );
+    if (value != null && mounted) {
+      setState(() => selectedDate = value);
+    }
+  }
+
+  Future<void> pickStartTime() async {
+    final value = await showTimePicker(
+      context: context,
+      initialTime: startTime,
+      helpText: 'Vrijeme početka',
+    );
+    if (value != null && mounted) {
+      setState(() => startTime = value);
+    }
+  }
+
+  Future<void> pickEndTime() async {
+    final value = await showTimePicker(
+      context: context,
+      initialTime: endTime,
+      helpText: 'Vrijeme završetka',
+    );
+    if (value != null && mounted) {
+      setState(() => endTime = value);
+    }
+  }
+
+  void save() {
+    if (!(formKey.currentState?.validate() ?? false)) return;
+    if (!scheduledEnd.isAfter(scheduledStart)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vrijeme završetka mora biti nakon početka.'),
+        ),
+      );
+      return;
+    }
+
+    widget.state.addJob(
+      WorkJob(
+        title: title.text.trim(),
+        client: selectedClient,
+        location: location.text.trim(),
+        scheduledStart: scheduledStart,
+        scheduledEnd: scheduledEnd,
+        status: JobStatus.planned,
+        description: description.text.trim(),
+        priority: priority,
+        assignedMemberId:
+            assignedMemberId.isEmpty ? null : assignedMemberId,
+        assignedMemberName:
+            widget.state.teamMemberById(assignedMemberId)?.name,
+      ),
+    );
+    Navigator.pop(context);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Novi posao")),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
-        children: [
-          TextField(controller: title, decoration: const InputDecoration(labelText: "Naziv posla *", prefixIcon: Icon(Icons.edit_note_rounded))),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<Client>(
-            initialValue: selectedClient,
-            decoration: const InputDecoration(labelText: "Klijent *", prefixIcon: Icon(Icons.person_outline_rounded)),
-            items: widget.state.clients.map((client) => DropdownMenuItem(value: client, child: Text(client.name))).toList(),
-            onChanged: (client) => setState(() => selectedClient = client ?? selectedClient),
-          ),
-          const SizedBox(height: 12),
-          TextField(controller: location, decoration: const InputDecoration(labelText: "Lokacija *", prefixIcon: Icon(Icons.location_on_outlined))),
-          const SizedBox(height: 12),
-          const Row(
-            children: [
-              Expanded(child: TextField(decoration: InputDecoration(labelText: "Datum *", hintText: "2. listopada 2026."))),
-              SizedBox(width: 10),
-              Expanded(child: TextField(decoration: InputDecoration(labelText: "Vrijeme *", hintText: "08:00"))),
-            ],
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: assignedMemberId,
-            decoration: const InputDecoration(
-              labelText: "Dodijeli članu tima",
-              prefixIcon: Icon(Icons.engineering_outlined),
-            ),
-            items: [
-              const DropdownMenuItem(
-                value: "",
-                child: Text("Nije dodijeljeno"),
+      body: Form(
+        key: formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            TextFormField(
+              controller: title,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: "Naziv posla *",
+                prefixIcon: Icon(Icons.edit_note_rounded),
               ),
-              ...widget.state.teamMembers
-                  .where((member) => member.active)
+              validator: (value) =>
+                  value == null || value.trim().length < 2
+                      ? 'Unesi naziv posla.'
+                      : null,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<Client>(
+              initialValue: selectedClient,
+              decoration: const InputDecoration(
+                labelText: "Klijent *",
+                prefixIcon: Icon(Icons.person_outline_rounded),
+              ),
+              items: widget.state.clients
                   .map(
-                    (member) => DropdownMenuItem(
-                      value: member.id,
-                      child: Text(member.name),
+                    (client) => DropdownMenuItem(
+                      value: client,
+                      child: Text(client.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (client) =>
+                  setState(() => selectedClient = client ?? selectedClient),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: location,
+              decoration: const InputDecoration(
+                labelText: "Lokacija *",
+                prefixIcon: Icon(Icons.location_on_outlined),
+              ),
+              validator: (value) =>
+                  value == null || value.trim().length < 2
+                      ? 'Unesi lokaciju posla.'
+                      : null,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: pickDate,
+              icon: const Icon(Icons.calendar_month_outlined),
+              label: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(formatCroatianDate(selectedDate)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: pickStartTime,
+                    icon: const Icon(Icons.schedule_rounded),
+                    label: Text(
+                      MaterialLocalizations.of(context).formatTimeOfDay(
+                        startTime,
+                        alwaysUse24HourFormat: true,
+                      ),
                     ),
                   ),
-            ],
-            onChanged: (value) => setState(
-              () => assignedMemberId = value ?? "",
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(controller: description, minLines: 3, maxLines: 5, decoration: const InputDecoration(labelText: "Opis posla")),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: priority,
-            decoration: const InputDecoration(labelText: "Prioritet"),
-            items: ["Niski", "Srednji", "Visoki"].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(),
-            onChanged: (value) => setState(() => priority = value ?? priority),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 52,
-            child: FilledButton(
-              onPressed: () {
-                widget.state.addJob(
-                  WorkJob(
-                    title: title.text.trim().isEmpty ? "Novi posao" : title.text.trim(),
-                    client: selectedClient,
-                    location: location.text.trim(),
-                    dateLabel: "2. listopada 2026.",
-                    timeLabel: "08:00",
-                    status: JobStatus.planned,
-                    description: description.text.trim(),
-                    priority: priority,
-                    assignedMemberId:
-                        assignedMemberId.isEmpty ? null : assignedMemberId,
-                    assignedMemberName: widget.state
-                        .teamMemberById(assignedMemberId)
-                        ?.name,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: pickEndTime,
+                    icon: const Icon(Icons.schedule_send_rounded),
+                    label: Text(
+                      MaterialLocalizations.of(context).formatTimeOfDay(
+                        endTime,
+                        alwaysUse24HourFormat: true,
+                      ),
+                    ),
                   ),
-                );
-                Navigator.pop(context);
-              },
-              child: const Text("Spremi posao"),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: assignedMemberId,
+              decoration: const InputDecoration(
+                labelText: "Dodijeli članu tima",
+                prefixIcon: Icon(Icons.engineering_outlined),
+              ),
+              items: [
+                const DropdownMenuItem(
+                  value: "",
+                  child: Text("Nije dodijeljeno"),
+                ),
+                ...widget.state.teamMembers
+                    .where((member) => member.active)
+                    .map(
+                      (member) => DropdownMenuItem(
+                        value: member.id,
+                        child: Text(member.name),
+                      ),
+                    ),
+              ],
+              onChanged: (value) => setState(
+                () => assignedMemberId = value ?? "",
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: description,
+              minLines: 3,
+              maxLines: 5,
+              decoration: const InputDecoration(labelText: "Opis posla"),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: priority,
+              decoration: const InputDecoration(labelText: "Prioritet"),
+              items: ["Niski", "Srednji", "Visoki"]
+                  .map(
+                    (value) => DropdownMenuItem(
+                      value: value,
+                      child: Text(value),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) =>
+                  setState(() => priority = value ?? priority),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: save,
+                icon: const Icon(Icons.save_outlined),
+                label: const Text("Spremi posao"),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class JobDetailScreen extends StatelessWidget {
-  const JobDetailScreen({super.key, required this.state, required this.job});
+class JobEditorScreen extends StatefulWidget {
+  const JobEditorScreen({
+    super.key,
+    required this.state,
+    required this.job,
+  });
+
   final AppState state;
   final WorkJob job;
 
   @override
+  State<JobEditorScreen> createState() => _JobEditorScreenState();
+}
+
+class _JobEditorScreenState extends State<JobEditorScreen> {
+  final formKey = GlobalKey<FormState>();
+  late final TextEditingController title;
+  late final TextEditingController location;
+  late final TextEditingController description;
+  late Client selectedClient;
+  late String priority;
+  late JobStatus status;
+  late String assignedMemberId;
+  late DateTime selectedDate;
+  late TimeOfDay startTime;
+  late TimeOfDay endTime;
+
+  @override
+  void initState() {
+    super.initState();
+    final job = widget.job;
+    final start = job.scheduledStart ?? DateTime.now();
+    final end = job.scheduledEnd ?? start.add(const Duration(hours: 1));
+
+    title = TextEditingController(text: job.title);
+    location = TextEditingController(text: job.location);
+    description = TextEditingController(text: job.description);
+    selectedClient = job.client;
+    priority = job.priority;
+    status = job.status;
+    assignedMemberId =
+        widget.state.teamMemberById(job.assignedMemberId) == null
+            ? ""
+            : job.assignedMemberId ?? "";
+    selectedDate = DateTime(start.year, start.month, start.day);
+    startTime = TimeOfDay.fromDateTime(start);
+    endTime = TimeOfDay.fromDateTime(end);
+  }
+
+  @override
+  void dispose() {
+    title.dispose();
+    location.dispose();
+    description.dispose();
+    super.dispose();
+  }
+
+  DateTime get scheduledStart => DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        startTime.hour,
+        startTime.minute,
+      );
+
+  DateTime get scheduledEnd => DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        endTime.hour,
+        endTime.minute,
+      );
+
+  Future<void> pickDate() async {
+    final value = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 3650)),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      helpText: 'Odaberi datum posla',
+    );
+    if (value != null && mounted) setState(() => selectedDate = value);
+  }
+
+  Future<void> pickTime({required bool start}) async {
+    final value = await showTimePicker(
+      context: context,
+      initialTime: start ? startTime : endTime,
+      helpText: start ? 'Vrijeme početka' : 'Vrijeme završetka',
+    );
+    if (value == null || !mounted) return;
+    setState(() {
+      if (start) {
+        startTime = value;
+      } else {
+        endTime = value;
+      }
+    });
+  }
+
+  void save() {
+    if (!(formKey.currentState?.validate() ?? false)) return;
+    if (!scheduledEnd.isAfter(scheduledStart)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vrijeme završetka mora biti nakon početka.'),
+        ),
+      );
+      return;
+    }
+
+    final job = widget.job;
+    job.title = title.text.trim();
+    job.client = selectedClient;
+    job.location = location.text.trim();
+    job.description = description.text.trim();
+    job.priority = priority;
+    job.status = status;
+    job.assignedMemberId =
+        assignedMemberId.isEmpty ? null : assignedMemberId;
+    job.assignedMemberName =
+        widget.state.teamMemberById(assignedMemberId)?.name;
+    job.setSchedule(scheduledStart, scheduledEnd);
+
+    widget.state.updateJob();
+    Navigator.pop(context, true);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final activeTeam = widget.state.teamMembers.where(
+      (member) => member.active || member.id == assignedMemberId,
+    );
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Detalj posla")),
+      appBar: AppBar(title: const Text('Uredi posao')),
+      body: Form(
+        key: formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            TextFormField(
+              controller: title,
+              decoration: const InputDecoration(labelText: 'Naziv posla *'),
+              validator: (value) =>
+                  value == null || value.trim().length < 2
+                      ? 'Unesi naziv posla.'
+                      : null,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<Client>(
+              initialValue: selectedClient,
+              decoration: const InputDecoration(labelText: 'Klijent *'),
+              items: widget.state.clients
+                  .map(
+                    (client) => DropdownMenuItem(
+                      value: client,
+                      child: Text(client.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) =>
+                  setState(() => selectedClient = value ?? selectedClient),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: location,
+              decoration: const InputDecoration(labelText: 'Lokacija *'),
+              validator: (value) =>
+                  value == null || value.trim().length < 2
+                      ? 'Unesi lokaciju posla.'
+                      : null,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: pickDate,
+              icon: const Icon(Icons.calendar_month_outlined),
+              label: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(formatCroatianDate(selectedDate)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => pickTime(start: true),
+                    icon: const Icon(Icons.schedule_rounded),
+                    label: Text(
+                      MaterialLocalizations.of(context).formatTimeOfDay(
+                        startTime,
+                        alwaysUse24HourFormat: true,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => pickTime(start: false),
+                    icon: const Icon(Icons.schedule_send_rounded),
+                    label: Text(
+                      MaterialLocalizations.of(context).formatTimeOfDay(
+                        endTime,
+                        alwaysUse24HourFormat: true,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<JobStatus>(
+              initialValue: status,
+              decoration: const InputDecoration(labelText: 'Status'),
+              items: JobStatus.values
+                  .map(
+                    (value) => DropdownMenuItem(
+                      value: value,
+                      child: Text(
+                        switch (value) {
+                          JobStatus.planned => 'Planirano',
+                          JobStatus.active => 'U tijeku',
+                          JobStatus.completed => 'Završeno',
+                        },
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => status = value ?? status),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: assignedMemberId,
+              decoration: const InputDecoration(
+                labelText: 'Terenski tehničar',
+              ),
+              items: [
+                const DropdownMenuItem(
+                  value: '',
+                  child: Text('Nije dodijeljeno'),
+                ),
+                ...activeTeam.map(
+                  (member) => DropdownMenuItem(
+                    value: member.id,
+                    child: Text(member.name),
+                  ),
+                ),
+              ],
+              onChanged: (value) => setState(
+                () => assignedMemberId = value ?? assignedMemberId,
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: priority,
+              decoration: const InputDecoration(labelText: 'Prioritet'),
+              items: ['Niski', 'Srednji', 'Visoki']
+                  .map(
+                    (value) => DropdownMenuItem(
+                      value: value,
+                      child: Text(value),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) =>
+                  setState(() => priority = value ?? priority),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: description,
+              minLines: 3,
+              maxLines: 5,
+              decoration: const InputDecoration(labelText: 'Opis posla'),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: save,
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Spremi promjene'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class JobDetailScreen extends StatefulWidget {
+  const JobDetailScreen({
+    super.key,
+    required this.state,
+    required this.job,
+  });
+
+  final AppState state;
+  final WorkJob job;
+
+  @override
+  State<JobDetailScreen> createState() => _JobDetailScreenState();
+}
+
+class _JobDetailScreenState extends State<JobDetailScreen> {
+  Future<void> editJob() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => JobEditorScreen(
+          state: widget.state,
+          job: widget.job,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final job = widget.job;
+    final state = widget.state;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Detalj posla"),
+        actions: [
+          IconButton(
+            onPressed: editJob,
+            tooltip: 'Uredi posao',
+            icon: const Icon(Icons.edit_outlined),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
-          Text(job.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+          Text(
+            job.title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
-          Align(alignment: Alignment.centerLeft, child: Chip(label: Text(job.statusLabel))),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Chip(label: Text(job.statusLabel)),
+          ),
           const SizedBox(height: 14),
           InfoTile(
             icon: Icons.person_outline_rounded,
@@ -157,8 +648,16 @@ class JobDetailScreen extends StatelessWidget {
                 "Nije dodijeljeno",
             subtitle: "Terenski tehničar",
           ),
-          InfoTile(icon: Icons.location_on_outlined, title: job.location, subtitle: "Otvori navigaciju"),
-          InfoTile(icon: Icons.calendar_month_outlined, title: job.dateLabel, subtitle: job.timeLabel),
+          InfoTile(
+            icon: Icons.location_on_outlined,
+            title: job.location,
+            subtitle: "Otvori navigaciju",
+          ),
+          InfoTile(
+            icon: Icons.calendar_month_outlined,
+            title: job.dateLabel,
+            subtitle: job.timeLabel,
+          ),
           const SizedBox(height: 12),
           Container(
             height: 150,
@@ -169,8 +668,20 @@ class JobDetailScreen extends StatelessWidget {
             ),
             child: const Stack(
               children: [
-                Center(child: Icon(Icons.map_rounded, size: 74, color: WorklogColors.border)),
-                Center(child: Icon(Icons.location_pin, size: 44, color: WorklogColors.primary)),
+                Center(
+                  child: Icon(
+                    Icons.map_rounded,
+                    size: 74,
+                    color: WorklogColors.border,
+                  ),
+                ),
+                Center(
+                  child: Icon(
+                    Icons.location_pin,
+                    size: 44,
+                    color: WorklogColors.primary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -188,9 +699,14 @@ class JobDetailScreen extends StatelessWidget {
                 label: "Nazovi",
                 color: WorklogColors.success,
                 onTap: () async {
-                  final opened = await const ExternalActionService().call(job.client.phone);
+                  final opened = await const ExternalActionService().call(
+                    job.client.phone,
+                  );
                   if (!opened && context.mounted) {
-                    _toast(context, "Poziv nije moguće otvoriti na ovom uređaju.");
+                    _toast(
+                      context,
+                      "Poziv nije moguće otvoriti na ovom uređaju.",
+                    );
                   }
                 },
               ),
@@ -199,15 +715,55 @@ class JobDetailScreen extends StatelessWidget {
                 label: "Navigacija",
                 color: WorklogColors.primary,
                 onTap: () async {
-                  final opened = await const ExternalActionService().openNavigation(job.location);
+                  final opened = await const ExternalActionService()
+                      .openNavigation(job.location);
                   if (!opened && context.mounted) {
                     _toast(context, "Navigaciju nije moguće otvoriti.");
                   }
                 },
               ),
-              ActionButton(icon: Icons.timer_outlined, label: "Evidencija vremena", color: WorklogColors.cyan, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TimeTrackingScreen(state: state, job: job)))),
-              ActionButton(icon: Icons.inventory_2_outlined, label: "Materijal", color: WorklogColors.violet, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MaterialsScreen(state: state, job: job)))),
-              ActionButton(icon: Icons.note_alt_outlined, label: "Bilješke", color: WorklogColors.warning, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotesScreen(state: state, job: job)))),
+              ActionButton(
+                icon: Icons.timer_outlined,
+                label: "Evidencija vremena",
+                color: WorklogColors.cyan,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TimeTrackingScreen(
+                      state: state,
+                      job: job,
+                    ),
+                  ),
+                ),
+              ),
+              ActionButton(
+                icon: Icons.inventory_2_outlined,
+                label: "Materijal",
+                color: WorklogColors.violet,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MaterialsScreen(
+                      state: state,
+                      job: job,
+                    ),
+                  ),
+                ),
+              ),
+              ActionButton(
+                icon: Icons.note_alt_outlined,
+                label: "Bilješke",
+                color: WorklogColors.warning,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => NotesScreen(
+                      state: state,
+                      job: job,
+                    ),
+                  ),
+                ),
+              ),
               ActionButton(
                 icon: Icons.photo_camera_outlined,
                 label: "Fotografije",
@@ -215,7 +771,10 @@ class JobDetailScreen extends StatelessWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => BeforeAfterScreen(state: state, job: job),
+                    builder: (_) => BeforeAfterScreen(
+                      state: state,
+                      job: job,
+                    ),
                   ),
                 ),
               ),
@@ -225,7 +784,15 @@ class JobDetailScreen extends StatelessWidget {
           SizedBox(
             height: 54,
             child: FilledButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CompletionFlowScreen(state: state, job: job))),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CompletionFlowScreen(
+                    state: state,
+                    job: job,
+                  ),
+                ),
+              ),
               icon: const Icon(Icons.check_circle_outline_rounded),
               label: const Text("Dovrši posao i izradi zapisnik"),
             ),
@@ -236,7 +803,9 @@ class JobDetailScreen extends StatelessWidget {
   }
 
   static void _toast(BuildContext context, String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text)),
+    );
   }
 }
 
