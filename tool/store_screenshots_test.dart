@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:worklog/app_state.dart';
 import 'package:worklog/models.dart';
@@ -6,23 +10,53 @@ import 'package:worklog/screens/onboarding.dart';
 import 'package:worklog/screens/shell.dart';
 import 'package:worklog/worklog_theme.dart';
 
-Future<void> pumpStoreScreen(
-  WidgetTester tester,
-  Widget child,
-) async {
-  tester.view.physicalSize = const Size(1320, 2868);
-  tester.view.devicePixelRatio = 3.0;
+Future<void> captureStoreScreen(
+  WidgetTester tester, {
+  required Widget child,
+  required Size physicalSize,
+  required double devicePixelRatio,
+  required String filePath,
+}) async {
+  tester.view.physicalSize = physicalSize;
+  tester.view.devicePixelRatio = devicePixelRatio;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
+  final captureKey = GlobalKey();
   await tester.pumpWidget(
-    MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: buildWorklogTheme(),
-      home: Scaffold(body: SafeArea(child: child)),
+    RepaintBoundary(
+      key: captureKey,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: buildWorklogTheme(),
+        home: Scaffold(body: SafeArea(child: child)),
+      ),
     ),
   );
   await tester.pumpAndSettle();
+
+  final boundary =
+      captureKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+  final logicalWidth = physicalSize.width / devicePixelRatio;
+  final captureRatio = physicalSize.width / logicalWidth;
+  final image = await boundary.toImage(pixelRatio: captureRatio);
+  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+  if (byteData == null) {
+    throw StateError('Flutter nije mogao generirati PNG screenshot.');
+  }
+
+  final file = File(filePath);
+  await file.parent.create(recursive: true);
+  await file.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+
+  if (image.width != physicalSize.width.round() ||
+      image.height != physicalSize.height.round()) {
+    throw StateError(
+      'Neispravna screenshot dimenzija: '
+      '${image.width}x${image.height}, očekivano '
+      '${physicalSize.width.round()}x${physicalSize.height.round()}.',
+    );
+  }
 }
 
 AppState populatedState() {
@@ -79,7 +113,7 @@ AppState populatedState() {
       title: 'Servis klimatizacije',
       client: clientA,
       location: 'Korzo 12, Rijeka',
-      scheduledStart: DateTime(now.year, now.month, now.day, 9, 0),
+      scheduledStart: DateTime(now.year, now.month, now.day, 9),
       scheduledEnd: DateTime(now.year, now.month, now.day, 11, 30),
       status: JobStatus.active,
       priority: 'Visoki',
@@ -88,7 +122,7 @@ AppState populatedState() {
       timeEntries: [
         WorkTimeEntry(
           id: 'time-1',
-          startedAt: DateTime(now.year, now.month, now.day, 9, 0),
+          startedAt: DateTime(now.year, now.month, now.day, 9),
           endedAt: DateTime(now.year, now.month, now.day, 10, 5),
         ),
       ],
@@ -103,7 +137,7 @@ AppState populatedState() {
       client: clientB,
       location: 'Maršala Tita 84, Opatija',
       scheduledStart: DateTime(now.year, now.month, now.day, 13, 30),
-      scheduledEnd: DateTime(now.year, now.month, now.day, 15, 0),
+      scheduledEnd: DateTime(now.year, now.month, now.day, 15),
       status: JobStatus.confirmed,
       priority: 'Srednji',
       assignedMemberId: 'lead-1',
@@ -128,58 +162,109 @@ AppState populatedState() {
   return state;
 }
 
+Future<void> capturePhoneSet(
+  WidgetTester tester, {
+  required String directory,
+  required Size physicalSize,
+  required double devicePixelRatio,
+}) async {
+  final state = populatedState();
+
+  await captureStoreScreen(
+    tester,
+    child: OnboardingScreen(state: AppState()),
+    physicalSize: physicalSize,
+    devicePixelRatio: devicePixelRatio,
+    filePath: '$directory/worklog-onboarding.png',
+  );
+  await captureStoreScreen(
+    tester,
+    child: LoginScreen(state: AppState()),
+    physicalSize: physicalSize,
+    devicePixelRatio: devicePixelRatio,
+    filePath: '$directory/worklog-local-access.png',
+  );
+  await captureStoreScreen(
+    tester,
+    child: DashboardScreen(state: state),
+    physicalSize: physicalSize,
+    devicePixelRatio: devicePixelRatio,
+    filePath: '$directory/worklog-dashboard.png',
+  );
+  await captureStoreScreen(
+    tester,
+    child: JobsScreen(state: state),
+    physicalSize: physicalSize,
+    devicePixelRatio: devicePixelRatio,
+    filePath: '$directory/worklog-jobs.png',
+  );
+  await captureStoreScreen(
+    tester,
+    child: ClientsScreen(state: state),
+    physicalSize: physicalSize,
+    devicePixelRatio: devicePixelRatio,
+    filePath: '$directory/worklog-clients.png',
+  );
+  await captureStoreScreen(
+    tester,
+    child: CalendarScreen(state: state),
+    physicalSize: physicalSize,
+    devicePixelRatio: devicePixelRatio,
+    filePath: '$directory/worklog-calendar.png',
+  );
+}
+
 void main() {
-  testWidgets('store screenshot onboarding', (tester) async {
-    final state = AppState();
-    await pumpStoreScreen(tester, OnboardingScreen(state: state));
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('generated-screenshots/worklog-onboarding.png'),
+  testWidgets('generiraj iPhone 6.9 screenshot set', (tester) async {
+    await capturePhoneSet(
+      tester,
+      directory: 'tool/generated-screenshots/iphone-6.9',
+      physicalSize: const Size(1320, 2868),
+      devicePixelRatio: 3,
     );
   });
 
-  testWidgets('store screenshot lokalni pristup', (tester) async {
-    final state = AppState();
-    await pumpStoreScreen(tester, LoginScreen(state: state));
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('generated-screenshots/worklog-local-access.png'),
+  testWidgets('generiraj Android 9:16 screenshot set', (tester) async {
+    await capturePhoneSet(
+      tester,
+      directory: 'tool/generated-screenshots/android-phone',
+      physicalSize: const Size(1080, 1920),
+      devicePixelRatio: 3,
     );
   });
 
-  testWidgets('store screenshot dashboard', (tester) async {
+  testWidgets('generiraj iPad 13 screenshot set', (tester) async {
     final state = populatedState();
-    await pumpStoreScreen(tester, DashboardScreen(state: state));
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('generated-screenshots/worklog-dashboard.png'),
-    );
-  });
+    const size = Size(2064, 2752);
+    const ratio = 2.0;
 
-  testWidgets('store screenshot poslovi', (tester) async {
-    final state = populatedState();
-    await pumpStoreScreen(tester, JobsScreen(state: state));
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('generated-screenshots/worklog-jobs.png'),
+    await captureStoreScreen(
+      tester,
+      child: DashboardScreen(state: state),
+      physicalSize: size,
+      devicePixelRatio: ratio,
+      filePath: 'tool/generated-screenshots/ipad-13/worklog-dashboard.png',
     );
-  });
-
-  testWidgets('store screenshot klijenti', (tester) async {
-    final state = populatedState();
-    await pumpStoreScreen(tester, ClientsScreen(state: state));
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('generated-screenshots/worklog-clients.png'),
+    await captureStoreScreen(
+      tester,
+      child: JobsScreen(state: state),
+      physicalSize: size,
+      devicePixelRatio: ratio,
+      filePath: 'tool/generated-screenshots/ipad-13/worklog-jobs.png',
     );
-  });
-
-  testWidgets('store screenshot kalendar', (tester) async {
-    final state = populatedState();
-    await pumpStoreScreen(tester, CalendarScreen(state: state));
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('generated-screenshots/worklog-calendar.png'),
+    await captureStoreScreen(
+      tester,
+      child: CalendarScreen(state: state),
+      physicalSize: size,
+      devicePixelRatio: ratio,
+      filePath: 'tool/generated-screenshots/ipad-13/worklog-calendar.png',
+    );
+    await captureStoreScreen(
+      tester,
+      child: ClientsScreen(state: state),
+      physicalSize: size,
+      devicePixelRatio: ratio,
+      filePath: 'tool/generated-screenshots/ipad-13/worklog-clients.png',
     );
   });
 }
