@@ -152,16 +152,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key, required this.state});
+
   final AppState state;
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  bool hidden = true;
 
   @override
   Widget build(BuildContext context) {
@@ -174,83 +168,43 @@ class _LoginScreenState extends State<LoginScreen> {
             const Center(child: WorklogWordmark()),
             const SizedBox(height: 52),
             const Text(
-              "Prijava",
+              "Rad na ovom uređaju",
               style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             const Text(
-              "Prijavi se u svoj WORKLOG račun i nastavi raditi.",
+              "WORKLOG trenutačno radi u lokalnom načinu rada. Poslovi, klijenti, fotografije i zapisnici ostaju na ovom uređaju.",
               style: TextStyle(color: WorklogColors.muted, fontSize: 16),
             ),
-            const SizedBox(height: 28),
-            const TextField(
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: "E-pošta",
-                prefixIcon: Icon(Icons.mail_outline_rounded),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              obscureText: hidden,
-              decoration: InputDecoration(
-                labelText: "Lozinka",
-                prefixIcon: const Icon(Icons.lock_outline_rounded),
-                suffixIcon: IconButton(
-                  onPressed: () => setState(() => hidden = !hidden),
-                  icon: Icon(
-                    hidden
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                  ),
+            const SizedBox(height: 24),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(18),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.security_rounded,
+                      color: WorklogColors.cyan,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "Cloud račun, registracija i sinkronizacija nisu aktivni dok nije povezana produkcijska serverska usluga. Lokalna biometrija može dodatno zaštititi podatke na uređaju.",
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Checkbox(value: true, onChanged: (_) {}),
-                const Text("Zapamti me"),
-                const Spacer(),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text("Zaboravljena lozinka?"),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 24),
             SizedBox(
               height: 54,
-              child: FilledButton(
-                onPressed: widget.state.login,
-                child: const Text("Prijavi se"),
+              child: FilledButton.icon(
+                onPressed: state.login,
+                icon: const Icon(Icons.phone_android_rounded),
+                label: const Text("Nastavi na ovom uređaju"),
               ),
-            ),
-            const SizedBox(height: 18),
-            const Row(
-              children: [
-                Expanded(child: Divider()),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    "ili se prijavi putem",
-                    style: TextStyle(color: WorklogColors.muted),
-                  ),
-                ),
-                Expanded(child: Divider()),
-              ],
-            ),
-            const SizedBox(height: 18),
-            OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.g_mobiledata_rounded),
-              label: const Text("Nastavi s Googleom"),
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.apple),
-              label: const Text("Nastavi s Appleom"),
             ),
           ],
         ),
