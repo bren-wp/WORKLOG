@@ -370,7 +370,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         'Mjesec' => DateTime(
             anchor.year,
             anchor.month + direction,
-            anchor.day.clamp(1, 28),
+            anchor.day > 28 ? 28 : anchor.day,
           ),
         _ => anchor,
       };
