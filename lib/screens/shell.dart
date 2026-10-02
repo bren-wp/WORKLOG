@@ -300,7 +300,7 @@ class CalendarScreen extends StatelessWidget {
             child: ListTile(
               leading: Text(["Pon", "Uto", "Sri", "Čet"][entry.key % 4], style: const TextStyle(color: WorklogColors.primary, fontWeight: FontWeight.w900)),
               title: Text(entry.value.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(entry.value.timeLabel + " • " + entry.value.client.name),
+              subtitle: Text("${entry.value.timeLabel} • ${entry.value.client.name}"),
               trailing: Text(entry.value.statusLabel, style: const TextStyle(fontSize: 11)),
             ),
           ),
