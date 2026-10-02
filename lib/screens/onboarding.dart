@@ -239,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'E-mail i lozinka koriste WORKLOG serversku autentikaciju. Google i Apple prijava nisu dio aplikacije.',
+              'Prijava i registracija koriste sigurnu WORKLOG serversku autentikaciju e-mailom i lozinkom.',
               style: TextStyle(color: WorklogColors.muted, fontSize: 16),
             ),
             const SizedBox(height: 24),
