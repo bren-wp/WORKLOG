@@ -279,19 +279,25 @@ def generate_android() -> None:
     android:height="108dp"
     android:viewportWidth="512"
     android:viewportHeight="512">
-    <path android:pathData="M82,150H176L256,318L336,150H430L319,365C294,412 261,418 234,368L195,294L157,368C133,414 103,403 82,363L16,232L82,150Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="90"
-                android:startY="130"
-                android:endX="420"
-                android:endY="390"
-                android:startColor="#13C8FF"
-                android:centerColor="#1677FF"
-                android:endColor="#5A72FF" />
-        </aapt:attr>
-    </path>
+    <group
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.66"
+        android:scaleY="0.66">
+        <path android:pathData="M82,150H176L256,318L336,150H430L319,365C294,412 261,418 234,368L195,294L157,368C133,414 103,403 82,363L16,232L82,150Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="90"
+                    android:startY="130"
+                    android:endX="420"
+                    android:endY="390"
+                    android:startColor="#13C8FF"
+                    android:centerColor="#1677FF"
+                    android:endColor="#5A72FF" />
+            </aapt:attr>
+        </path>
+    </group>
 </vector>
 """
     (drawable / "worklog_foreground.xml").write_text(vector, encoding="utf-8")
@@ -301,9 +307,15 @@ def generate_android() -> None:
     android:height="108dp"
     android:viewportWidth="512"
     android:viewportHeight="512">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M82,150H176L256,318L336,150H430L319,365C294,412 261,418 234,368L195,294L157,368C133,414 103,403 82,363L16,232L82,150Z" />
+    <group
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.66"
+        android:scaleY="0.66">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M82,150H176L256,318L336,150H430L319,365C294,412 261,418 234,368L195,294L157,368C133,414 103,403 82,363L16,232L82,150Z" />
+    </group>
 </vector>
 """
     (drawable / "worklog_monochrome.xml").write_text(monochrome, encoding="utf-8")
