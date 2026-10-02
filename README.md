@@ -6,7 +6,7 @@
 
 ## Status
 
-Aktivni razvoj: **0.5.0**. Projekt je izgrađen u Flutteru s jednim kodom za Android i iOS. Cijelo korisničko sučelje je na hrvatskom i vizualno prati odobreni WORKLOG branding.
+Aktivni razvoj: **0.6.0**. Projekt je izgrađen u Flutteru s jednim kodom za Android i iOS. Cijelo korisničko sučelje je na hrvatskom i vizualno prati odobreni WORKLOG branding.
 
 ## Pokretanje
 
@@ -35,8 +35,8 @@ flutter run
 - stvarni datum i vrijeme termina
 - kalendar Dan / Tjedan / Mjesec s navigacijom
 - Klijenti
-- Poruke
-- Obavijesti
+- trajni lokalni dnevnik razgovora po klijentu
+- stvarni dnevnik aktivnosti i nepročitanih događaja
 - Novi posao
 - Detalj posla
 - Evidencija vremena
