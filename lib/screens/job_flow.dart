@@ -1,10 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import '../app_state.dart';
 import '../brand.dart';
 import '../models.dart';
 import '../worklog_theme.dart';
+import '../services/device_services.dart';
+import '../services/pdf_report_service.dart';
 
 class NewJobScreen extends StatefulWidget {
   const NewJobScreen({super.key, required this.state});
@@ -132,12 +140,42 @@ class JobDetailScreen extends StatelessWidget {
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
             children: [
-              ActionButton(icon: Icons.phone_rounded, label: "Nazovi", color: WorklogColors.success, onTap: () => _toast(context, "Pozivanje klijenta")),
-              ActionButton(icon: Icons.navigation_rounded, label: "Navigacija", color: WorklogColors.primary, onTap: () => _toast(context, "Otvaranje navigacije")),
+              ActionButton(
+                icon: Icons.phone_rounded,
+                label: "Nazovi",
+                color: WorklogColors.success,
+                onTap: () async {
+                  final opened = await const ExternalActionService().call(job.client.phone);
+                  if (!opened && context.mounted) {
+                    _toast(context, "Poziv nije moguće otvoriti na ovom uređaju.");
+                  }
+                },
+              ),
+              ActionButton(
+                icon: Icons.navigation_rounded,
+                label: "Navigacija",
+                color: WorklogColors.primary,
+                onTap: () async {
+                  final opened = await const ExternalActionService().openNavigation(job.location);
+                  if (!opened && context.mounted) {
+                    _toast(context, "Navigaciju nije moguće otvoriti.");
+                  }
+                },
+              ),
               ActionButton(icon: Icons.timer_outlined, label: "Evidencija vremena", color: WorklogColors.cyan, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TimeTrackingScreen(state: state, job: job)))),
               ActionButton(icon: Icons.inventory_2_outlined, label: "Materijal", color: WorklogColors.violet, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MaterialsScreen(state: state, job: job)))),
               ActionButton(icon: Icons.note_alt_outlined, label: "Bilješke", color: WorklogColors.warning, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotesScreen(state: state, job: job)))),
-              ActionButton(icon: Icons.photo_camera_outlined, label: "Fotografije", color: WorklogColors.primary, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BeforeAfterScreen(job: job)))),
+              ActionButton(
+                icon: Icons.photo_camera_outlined,
+                label: "Fotografije",
+                color: WorklogColors.primary,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BeforeAfterScreen(state: state, job: job),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -475,42 +513,257 @@ class _CheckRowState extends State<CheckRow> {
 }
 
 class BeforeAfterScreen extends StatelessWidget {
-  const BeforeAfterScreen({super.key, required this.job});
+  const BeforeAfterScreen({
+    super.key,
+    required this.state,
+    required this.job,
+  });
+
+  final AppState state;
   final WorkJob job;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Fotografije")),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
-        children: [
-          const SectionTitle("Fotografije prije"),
-          const Row(
+      body: JobPhotoManager(state: state, job: job),
+    );
+  }
+}
+
+class JobPhotoManager extends StatefulWidget {
+  const JobPhotoManager({
+    super.key,
+    required this.state,
+    required this.job,
+    this.compact = false,
+  });
+
+  final AppState state;
+  final WorkJob job;
+  final bool compact;
+
+  @override
+  State<JobPhotoManager> createState() => _JobPhotoManagerState();
+}
+
+class _JobPhotoManagerState extends State<JobPhotoManager> {
+  final DeviceMediaService _media = DeviceMediaService();
+  bool busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_recoverLostImages());
+  }
+
+  Future<void> _recoverLostImages() async {
+    final storage = widget.state.storage;
+    if (storage == null) return;
+    final paths = await _media.recoverLostImages(
+      storage: storage,
+      job: widget.job,
+    );
+    if (paths.isEmpty || !mounted) return;
+    setState(() => widget.job.beforePhotoPaths.addAll(paths));
+    widget.state.updateJob();
+  }
+
+  Future<void> _pick(bool before, ImageSource source) async {
+    final storage = widget.state.storage;
+    if (storage == null || busy) return;
+
+    setState(() => busy = true);
+    try {
+      final path = await _media.pickJobPhoto(
+        storage: storage,
+        job: widget.job,
+        before: before,
+        source: source,
+      );
+      if (path == null || !mounted) return;
+      setState(() {
+        final list = before
+            ? widget.job.beforePhotoPaths
+            : widget.job.afterPhotoPaths;
+        list.add(path);
+      });
+      widget.state.updateJob();
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _chooseSource(bool before) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Wrap(
             children: [
-              Expanded(child: PhotoPlaceholder(icon: Icons.plumbing_rounded, label: "Prije")),
-              SizedBox(width: 10),
-              Expanded(child: PhotoPlaceholder(icon: Icons.construction_rounded, label: "Prije")),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text("Kamera"),
+                subtitle: const Text("Snimi novu fotografiju na terenu."),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text("Galerija"),
+                subtitle: const Text("Odaberi postojeću fotografiju."),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.add_a_photo_outlined), label: const Text("Dodaj fotografiju")),
-          const SectionTitle("Fotografije poslije"),
-          const Row(
-            children: [
-              Expanded(child: PhotoPlaceholder(icon: Icons.bathroom_rounded, label: "Poslije")),
-              SizedBox(width: 10),
-              Expanded(child: PhotoPlaceholder(icon: Icons.check_circle_rounded, label: "Poslije")),
-            ],
-          ),
-        ],
+        ),
       ),
+    );
+    if (source != null && mounted) {
+      await _pick(before, source);
+    }
+  }
+
+  void _remove(bool before, String path) {
+    setState(() {
+      final list =
+          before ? widget.job.beforePhotoPaths : widget.job.afterPhotoPaths;
+      list.remove(path);
+    });
+    widget.state.updateJob();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.all(widget.compact ? 14 : 18),
+      shrinkWrap: widget.compact,
+      physics: widget.compact
+          ? const NeverScrollableScrollPhysics()
+          : const AlwaysScrollableScrollPhysics(),
+      children: [
+        PhotoSection(
+          title: "Fotografije prije",
+          subtitle: "Dokumentiraj stanje prije početka radova.",
+          paths: widget.job.beforePhotoPaths,
+          onAdd: () => _chooseSource(true),
+          onRemove: (path) => _remove(true, path),
+          busy: busy,
+        ),
+        const SizedBox(height: 18),
+        PhotoSection(
+          title: "Fotografije poslije",
+          subtitle: "Dodaj dokaz završenih radova.",
+          paths: widget.job.afterPhotoPaths,
+          onAdd: () => _chooseSource(false),
+          onRemove: (path) => _remove(false, path),
+          busy: busy,
+        ),
+      ],
+    );
+  }
+}
+
+class PhotoSection extends StatelessWidget {
+  const PhotoSection({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.paths,
+    required this.onAdd,
+    required this.onRemove,
+    required this.busy,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<String> paths;
+  final VoidCallback onAdd;
+  final ValueChanged<String> onRemove;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text(subtitle, style: const TextStyle(color: WorklogColors.muted)),
+        const SizedBox(height: 12),
+        if (paths.isEmpty)
+          const PhotoPlaceholder(
+            icon: Icons.add_a_photo_outlined,
+            label: "Još nema fotografija",
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: paths.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1.15,
+            ),
+            itemBuilder: (context, index) {
+              final path = paths[index];
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.file(
+                      File(path),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: WorklogColors.surface2,
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          color: WorklogColors.muted,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: IconButton.filledTonal(
+                        onPressed: () => onRemove(path),
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: busy ? null : onAdd,
+            icon: busy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_a_photo_outlined),
+            label: Text(busy ? "Spremanje..." : "Dodaj fotografiju"),
+          ),
+        ),
+      ],
     );
   }
 }
 
 class PhotoPlaceholder extends StatelessWidget {
-  const PhotoPlaceholder({super.key, required this.icon, required this.label});
+  const PhotoPlaceholder({
+    super.key,
+    required this.icon,
+    required this.label,
+  });
+
   final IconData icon;
   final String label;
 
@@ -519,7 +772,9 @@ class PhotoPlaceholder extends StatelessWidget {
     return Container(
       height: 130,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF163B5F), Color(0xFF0A192B)]),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF163B5F), Color(0xFF0A192B)],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: WorklogColors.border),
       ),
@@ -531,8 +786,14 @@ class PhotoPlaceholder extends StatelessWidget {
             bottom: 8,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
-              child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ],
@@ -542,7 +803,12 @@ class PhotoPlaceholder extends StatelessWidget {
 }
 
 class CompletionFlowScreen extends StatefulWidget {
-  const CompletionFlowScreen({super.key, required this.state, required this.job});
+  const CompletionFlowScreen({
+    super.key,
+    required this.state,
+    required this.job,
+  });
+
   final AppState state;
   final WorkJob job;
 
@@ -552,21 +818,74 @@ class CompletionFlowScreen extends StatefulWidget {
 
 class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
   int step = 0;
+  bool processing = false;
   final PageController pageController = PageController();
+  final GlobalKey<SignatureStepState> signatureKey =
+      GlobalKey<SignatureStepState>();
 
-  void next() {
+  Future<void> next() async {
+    if (processing) return;
+
+    if (step == 1) {
+      await signatureKey.currentState?.persistSignature();
+    }
+
     if (step < 3) {
-      pageController.nextPage(duration: const Duration(milliseconds: 230), curve: Curves.easeOut);
-    } else {
+      await pageController.nextPage(
+        duration: const Duration(milliseconds: 230),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+
+    final storage = widget.state.storage;
+    if (storage == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Pohrana uređaja nije dostupna."),
+        ),
+      );
+      return;
+    }
+
+    setState(() => processing = true);
+    try {
       widget.job.status = JobStatus.completed;
       widget.state.updateJob();
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => SendReportScreen(job: widget.job)));
+      final file = await PdfReportService(storage).generate(widget.job);
+      await widget.state.persistNow();
+
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => SendReportScreen(
+            state: widget.state,
+            job: widget.job,
+            initialFile: file,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("PDF zapisnik nije moguće izraditi: $error"),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => processing = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final titles = ["Dokaz radova", "Potpis klijenta", "Pregled zapisnika", "Dovrši posao"];
+    final titles = [
+      "Dokaz radova",
+      "Potpis klijenta",
+      "Pregled zapisnika",
+      "Dovrši posao",
+    ];
     return Scaffold(
       appBar: AppBar(title: Text(titles[step])),
       body: Column(
@@ -581,8 +900,15 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: (value) => setState(() => step = value),
               children: [
-                BeforeAfterStep(job: widget.job),
-                const SignatureStep(),
+                JobPhotoManager(
+                  state: widget.state,
+                  job: widget.job,
+                ),
+                SignatureStep(
+                  key: signatureKey,
+                  state: widget.state,
+                  job: widget.job,
+                ),
                 ReportPreviewStep(job: widget.job),
                 const CompleteStep(),
               ],
@@ -593,7 +919,20 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
             child: SizedBox(
               width: double.infinity,
               height: 52,
-              child: FilledButton(onPressed: next, child: Text(step == 3 ? "Generiraj PDF zapisnik" : "Dalje")),
+              child: FilledButton(
+                onPressed: processing ? null : next,
+                child: processing
+                    ? const SizedBox.square(
+                        dimension: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        step == 3 ? "Generiraj PDF zapisnik" : "Dalje",
+                      ),
+              ),
             ),
           ),
         ],
@@ -602,74 +941,141 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
   }
 }
 
-class BeforeAfterStep extends StatelessWidget {
-  const BeforeAfterStep({super.key, required this.job});
+class SignatureStep extends StatefulWidget {
+  const SignatureStep({
+    super.key,
+    required this.state,
+    required this.job,
+  });
+
+  final AppState state;
   final WorkJob job;
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: const [
-        Text("Fotografije prije i poslije", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-        SizedBox(height: 8),
-        Text("Dodaj dokaz trenutačnog stanja i završenih radova.", style: TextStyle(color: WorklogColors.muted)),
-        SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(child: PhotoPlaceholder(icon: Icons.plumbing_rounded, label: "Prije")),
-            SizedBox(width: 10),
-            Expanded(child: PhotoPlaceholder(icon: Icons.bathroom_rounded, label: "Poslije")),
-          ],
-        ),
-      ],
-    );
-  }
+  State<SignatureStep> createState() => SignatureStepState();
 }
 
-class SignatureStep extends StatefulWidget {
-  const SignatureStep({super.key});
-
-  @override
-  State<SignatureStep> createState() => _SignatureStepState();
-}
-
-class _SignatureStepState extends State<SignatureStep> {
+class SignatureStepState extends State<SignatureStep> {
   final List<Offset?> points = [];
+  final GlobalKey boundaryKey = GlobalKey();
+  bool saving = false;
+
+  Future<void> persistSignature() async {
+    if (points.whereType<Offset>().length < 2 || saving) return;
+    final storage = widget.state.storage;
+    if (storage == null) return;
+
+    setState(() => saving = true);
+    try {
+      await WidgetsBinding.instance.endOfFrame;
+      final object = boundaryKey.currentContext?.findRenderObject();
+      if (object is! RenderRepaintBoundary) return;
+
+      final image = await object.toImage(pixelRatio: 2);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      if (byteData == null) return;
+
+      final path = await storage.persistBytes(
+        bytes: byteData.buffer.asUint8List(),
+        directoryName: 'potpisi',
+        fileName: 'potpis-${widget.job.id}.png',
+      );
+      widget.job.signaturePath = path;
+      widget.state.updateJob();
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  void clear() {
+    setState(points.clear);
+    widget.job.signaturePath = null;
+    widget.state.updateJob();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
-        const Text("Potpis klijenta", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+        const Text(
+          "Potpis klijenta",
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 8),
-        const Text("Klijent potvrđuje da su radovi izvedeni prema dogovoru.", style: TextStyle(color: WorklogColors.muted)),
+        const Text(
+          "Klijent potvrđuje da su radovi izvedeni prema dogovoru.",
+          style: TextStyle(color: WorklogColors.muted),
+        ),
         const SizedBox(height: 18),
-        const TextField(decoration: InputDecoration(labelText: "Ime i prezime klijenta")),
-        const SizedBox(height: 12),
-        Container(
-          height: 240,
-          decoration: BoxDecoration(
-            color: WorklogColors.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: WorklogColors.border),
+        TextField(
+          controller: TextEditingController(text: widget.job.client.name),
+          readOnly: true,
+          decoration: const InputDecoration(
+            labelText: "Ime i prezime klijenta",
           ),
-          child: GestureDetector(
-            onPanStart: (details) => setState(() => points.add(details.localPosition)),
-            onPanUpdate: (details) => setState(() => points.add(details.localPosition)),
-            onPanEnd: (_) => setState(() => points.add(null)),
-            child: CustomPaint(painter: SignaturePainter(points), child: const SizedBox.expand()),
+        ),
+        const SizedBox(height: 12),
+        RepaintBoundary(
+          key: boundaryKey,
+          child: Container(
+            height: 240,
+            decoration: BoxDecoration(
+              color: WorklogColors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: WorklogColors.border),
+            ),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanStart: (details) {
+                setState(() => points.add(details.localPosition));
+              },
+              onPanUpdate: (details) {
+                setState(() => points.add(details.localPosition));
+              },
+              onPanEnd: (_) {
+                setState(() => points.add(null));
+              },
+              child: CustomPaint(
+                painter: SignaturePainter(points),
+                child: const SizedBox.expand(),
+              ),
+            ),
           ),
         ),
         Align(
           alignment: Alignment.centerRight,
-          child: TextButton.icon(onPressed: () => setState(points.clear), icon: const Icon(Icons.refresh_rounded), label: const Text("Očisti")),
+          child: TextButton.icon(
+            onPressed: saving ? null : clear,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text("Očisti"),
+          ),
         ),
+        if (widget.job.signaturePath != null)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: WorklogColors.success,
+                  size: 18,
+                ),
+                SizedBox(width: 6),
+                Text(
+                  "Potpis je spremljen.",
+                  style: TextStyle(color: WorklogColors.success),
+                ),
+              ],
+            ),
+          ),
         CheckboxListTile(
           value: true,
           onChanged: (_) {},
-          title: const Text("Potvrđujem da su radovi izvedeni kvalitetno i u skladu s dogovorom."),
+          title: const Text(
+            "Potvrđujem da su radovi izvedeni kvalitetno i u skladu s dogovorom.",
+          ),
           contentPadding: EdgeInsets.zero,
         ),
       ],
@@ -679,6 +1085,7 @@ class _SignatureStepState extends State<SignatureStep> {
 
 class SignaturePainter extends CustomPainter {
   SignaturePainter(this.points);
+
   final List<Offset?> points;
 
   @override
@@ -700,6 +1107,7 @@ class SignaturePainter extends CustomPainter {
 
 class ReportPreviewStep extends StatelessWidget {
   const ReportPreviewStep({super.key, required this.job});
+
   final WorkJob job;
 
   @override
@@ -708,22 +1116,48 @@ class ReportPreviewStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
-        const Text("Pregled zapisnika", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+        const Text(
+          "Pregled zapisnika",
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 8),
-        const Text("Provjeri sve informacije prije generiranja PDF zapisnika.", style: TextStyle(color: WorklogColors.muted)),
+        const Text(
+          "Provjeri sve informacije prije generiranja PDF zapisnika.",
+          style: TextStyle(color: WorklogColors.muted),
+        ),
         const SizedBox(height: 16),
-        ReportBlock(title: "Sažetak posla", rows: [
-          ["Vrsta radova", job.title],
-          ["Klijent", job.client.name],
-          ["Lokacija", job.location],
-          ["Datum", job.dateLabel],
-        ]),
-        ReportBlock(title: "Odrađeni sati", rows: [
-          ["Ukupno", "${minutes ~/ 60} h ${minutes % 60} min"],
-        ]),
+        ReportBlock(
+          title: "Sažetak posla",
+          rows: [
+            ["Vrsta radova", job.title],
+            ["Klijent", job.client.name],
+            ["Lokacija", job.location],
+            ["Datum", job.dateLabel],
+          ],
+        ),
+        ReportBlock(
+          title: "Odrađeni sati",
+          rows: [
+            ["Ukupno", "${minutes ~/ 60} h ${minutes % 60} min"],
+          ],
+        ),
         ReportBlock(
           title: "Materijal",
-          rows: job.materials.isEmpty ? [["Materijal", "Nije evidentiran"]] : job.materials.map((item) => [item.name, item.quantity]).toList(),
+          rows: job.materials.isEmpty
+              ? [
+                  ["Materijal", "Nije evidentiran"],
+                ]
+              : job.materials
+                  .map((item) => [item.name, item.quantity])
+                  .toList(),
+        ),
+        ReportBlock(
+          title: "Dokaz rada",
+          rows: [
+            ["Fotografije prije", job.beforePhotoPaths.length.toString()],
+            ["Fotografije poslije", job.afterPhotoPaths.length.toString()],
+            ["Potpis klijenta", job.signaturePath == null ? "Nije spremljen" : "Spremljen"],
+          ],
         ),
       ],
     );
@@ -731,7 +1165,12 @@ class ReportPreviewStep extends StatelessWidget {
 }
 
 class ReportBlock extends StatelessWidget {
-  const ReportBlock({super.key, required this.title, required this.rows});
+  const ReportBlock({
+    super.key,
+    required this.title,
+    required this.rows,
+  });
+
   final String title;
   final List<List<String>> rows;
 
@@ -752,8 +1191,19 @@ class ReportBlock extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: Text(row[0], style: const TextStyle(color: WorklogColors.muted))),
-                    Expanded(child: Text(row[1], textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600))),
+                    Expanded(
+                      child: Text(
+                        row[0],
+                        style: const TextStyle(color: WorklogColors.muted),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        row[1],
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -776,11 +1226,27 @@ class CompleteStep extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(radius: 46, backgroundColor: Color(0x2210B981), child: Icon(Icons.check_rounded, color: WorklogColors.success, size: 54)),
+            CircleAvatar(
+              radius: 46,
+              backgroundColor: Color(0x2210B981),
+              child: Icon(
+                Icons.check_rounded,
+                color: WorklogColors.success,
+                size: 54,
+              ),
+            ),
             SizedBox(height: 22),
-            Text("Posao je spreman za završetak", textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+            Text(
+              "Posao je spreman za završetak",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+            ),
             SizedBox(height: 10),
-            Text("Fotografije, potpis, materijal i odrađeni sati bit će objedinjeni u zapisniku.", textAlign: TextAlign.center, style: TextStyle(color: WorklogColors.muted)),
+            Text(
+              "Fotografije, potpis, materijal i odrađeni sati bit će objedinjeni u stvarnom PDF zapisniku.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: WorklogColors.muted),
+            ),
           ],
         ),
       ),
@@ -789,34 +1255,162 @@ class CompleteStep extends StatelessWidget {
 }
 
 class SendReportScreen extends StatefulWidget {
-  const SendReportScreen({super.key, required this.job});
+  const SendReportScreen({
+    super.key,
+    required this.state,
+    required this.job,
+    this.initialFile,
+  });
+
+  final AppState state;
   final WorkJob job;
+  final File? initialFile;
 
   @override
   State<SendReportScreen> createState() => _SendReportScreenState();
 }
 
 class _SendReportScreenState extends State<SendReportScreen> {
-  bool sent = false;
+  File? reportFile;
+  bool busy = false;
+
+  bool get sent => widget.job.reportSent;
+
+  @override
+  void initState() {
+    super.initState();
+    reportFile = widget.initialFile;
+    final savedPath = widget.job.reportPath;
+    if (reportFile == null && savedPath != null && savedPath.isNotEmpty) {
+      reportFile = File(savedPath);
+    }
+  }
+
+  Future<File?> _ensureReport() async {
+    final existing = reportFile;
+    if (existing != null && await existing.exists()) return existing;
+
+    final storage = widget.state.storage;
+    if (storage == null) return null;
+
+    final generated = await PdfReportService(storage).generate(widget.job);
+    reportFile = generated;
+    await widget.state.persistNow();
+    if (mounted) setState(() {});
+    return generated;
+  }
+
+  Future<void> _share(BuildContext shareContext) async {
+    if (busy) return;
+    final storage = widget.state.storage;
+    if (storage == null) return;
+
+    setState(() => busy = true);
+    try {
+      final file = await _ensureReport();
+      if (file == null || !mounted || !shareContext.mounted) return;
+
+      final result = await PdfReportService(storage).share(
+        shareContext,
+        file,
+        widget.job,
+      );
+
+      if (result.status == ShareResultStatus.success) {
+        widget.job.reportSent = true;
+        widget.state.updateJob();
+        await widget.state.persistNow();
+        if (mounted) setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Dijeljenje nije uspjelo: $error")),
+      );
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _regenerate() async {
+    final storage = widget.state.storage;
+    if (storage == null || busy) return;
+    setState(() => busy = true);
+    try {
+      final file = await PdfReportService(storage).generate(widget.job);
+      reportFile = file;
+      await widget.state.persistNow();
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("PDF zapisnik je ponovno generiran.")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final path = reportFile?.path ?? widget.job.reportPath;
     return Scaffold(
       appBar: AppBar(title: const Text("Pošalji izvještaj")),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
-          const Card(
+          Card(
             child: ListTile(
-              leading: Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
-              title: Text("PDF zapisnik", style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: Text("Spreman za slanje • 2,4 MB"),
+              leading: const Icon(
+                Icons.picture_as_pdf_rounded,
+                color: Colors.redAccent,
+              ),
+              title: const Text(
+                "PDF zapisnik",
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                path == null
+                    ? "Zapisnik će biti generiran pri dijeljenju."
+                    : "PDF je spremljen na uređaju.",
+              ),
+              trailing: IconButton(
+                onPressed: busy ? null : _regenerate,
+                tooltip: "Ponovno generiraj",
+                icon: const Icon(Icons.refresh_rounded),
+              ),
             ),
           ),
           const SizedBox(height: 12),
-          ShareTile(icon: Icons.mail_outline_rounded, title: "E-pošta", subtitle: "Pošalji klijentu e-poštom", onTap: () => setState(() => sent = true)),
-          ShareTile(icon: Icons.chat_bubble_outline_rounded, title: "WhatsApp", subtitle: "Podijeli putem WhatsAppa", onTap: () => setState(() => sent = true)),
-          ShareTile(icon: Icons.link_rounded, title: "Poveznica", subtitle: "Kreiraj poveznicu za dijeljenje", onTap: () => setState(() => sent = true)),
+          Builder(
+            builder: (shareContext) => Column(
+              children: [
+                ShareTile(
+                  icon: Icons.ios_share_rounded,
+                  title: "Podijeli zapisnik",
+                  subtitle: "Otvori sustavni izbornik za e-poštu, WhatsApp i druge aplikacije.",
+                  onTap: busy ? () {} : () => _share(shareContext),
+                ),
+                ShareTile(
+                  icon: Icons.mail_outline_rounded,
+                  title: "E-pošta",
+                  subtitle: "PDF možeš odabrati u sustavnom izborniku dijeljenja.",
+                  onTap: busy ? () {} : () => _share(shareContext),
+                ),
+                ShareTile(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  title: "WhatsApp",
+                  subtitle: "Podijeli PDF kroz instalirane aplikacije.",
+                  onTap: busy ? () {} : () => _share(shareContext),
+                ),
+              ],
+            ),
+          ),
+          if (busy)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: LinearProgressIndicator(),
+            ),
           if (sent) ...[
             const SizedBox(height: 18),
             Card(
@@ -824,11 +1418,25 @@ class _SendReportScreenState extends State<SendReportScreen> {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    const Icon(Icons.check_circle_rounded, color: WorklogColors.success, size: 64),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: WorklogColors.success,
+                      size: 64,
+                    ),
                     const SizedBox(height: 12),
-                    const Text("Izvještaj uspješno poslan!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                    const Text(
+                      "Izvještaj uspješno podijeljen!",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    Text("Zapisnik za ${widget.job.client.name} označen je kao poslan.", textAlign: TextAlign.center, style: const TextStyle(color: WorklogColors.muted)),
+                    Text(
+                      "Zapisnik za ${widget.job.client.name} označen je kao podijeljen.",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: WorklogColors.muted),
+                    ),
                   ],
                 ),
               ),

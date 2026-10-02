@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
+
 import 'app_state.dart';
 import 'screens.dart';
+import 'services/local_storage_service.dart';
 import 'worklog_theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const WorklogApp());
+  final state = AppState(storage: const LocalStorageService());
+  await state.load();
+  runApp(WorklogApp(state: state));
 }
 
 class WorklogApp extends StatefulWidget {
-  const WorklogApp({super.key});
+  const WorklogApp({super.key, this.state});
+
+  final AppState? state;
 
   @override
   State<WorklogApp> createState() => _WorklogAppState();
 }
 
 class _WorklogAppState extends State<WorklogApp> {
-  final AppState state = AppState();
+  late final AppState state = widget.state ?? AppState();
 
   @override
   void initState() {

@@ -184,7 +184,12 @@ class ReportsScreen extends StatelessWidget {
               title: Text(job.title, style: const TextStyle(fontWeight: FontWeight.w800)),
               subtitle: Text("${job.client.name} • ${job.dateLabel}"),
               trailing: Chip(label: Text(job.status == JobStatus.completed ? "Potpisano" : "Na čekanju")),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SendReportScreen(job: job))),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SendReportScreen(state: state, job: job),
+                ),
+              ),
             ),
           ),
         ).toList(),

@@ -1,8 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+
 import 'models.dart';
+import 'services/local_storage_service.dart';
 
 class AppState extends ChangeNotifier {
-  AppState() {
+  AppState({this.storage}) {
+    _seed();
+  }
+
+  final LocalStorageService? storage;
+  final List<Client> clients = [];
+  final List<WorkJob> jobs = [];
+
+  int activeTab = 0;
+  bool onboardingComplete = false;
+  bool loggedIn = false;
+  bool profileReady = false;
+
+  void _seed() {
     final ivica = const Client(
       name: "Ivica Horvat",
       type: "Privatna osoba",
@@ -35,6 +52,7 @@ class AppState extends ChangeNotifier {
 
     jobs.addAll([
       WorkJob(
+        id: 'demo-klima',
         title: "Servis klima uređaja",
         client: ivica,
         location: "Zagreb, Trešnjevka",
@@ -44,12 +62,17 @@ class AppState extends ChangeNotifier {
         description: "Redovni servis, čišćenje filtera i provjera rada.",
         minutesWorked: 135,
         materials: const [
-          MaterialItem(name: "Sredstvo za čišćenje", quantity: "1 kom", price: 12.50),
+          MaterialItem(
+            name: "Sredstvo za čišćenje",
+            quantity: "1 kom",
+            price: 12.50,
+          ),
           MaterialItem(name: "Filter klime", quantity: "1 kom", price: 18),
           MaterialItem(name: "Plin R32", quantity: "0,5 kg", price: 35),
         ],
       ),
       WorkJob(
+        id: 'demo-bojler',
         title: "Servis bojlera",
         client: marija,
         location: "Zagreb, Maksimir",
@@ -58,6 +81,7 @@ class AppState extends ChangeNotifier {
         status: JobStatus.planned,
       ),
       WorkJob(
+        id: 'demo-rasvjeta',
         title: "Ugradnja rasvjete",
         client: korzo,
         location: "Zagreb, Centar",
@@ -66,6 +90,7 @@ class AppState extends ChangeNotifier {
         status: JobStatus.planned,
       ),
       WorkJob(
+        id: 'demo-instalacije',
         title: "Sanacija instalacija",
         client: goran,
         location: "Velika Gorica",
@@ -76,13 +101,45 @@ class AppState extends ChangeNotifier {
     ]);
   }
 
-  final List<Client> clients = [];
-  final List<WorkJob> jobs = [];
+  Future<void> load() async {
+    final service = storage;
+    if (service == null) return;
 
-  int activeTab = 0;
-  bool onboardingComplete = false;
-  bool loggedIn = false;
-  bool profileReady = false;
+    final data = await service.readState();
+    if (data == null) {
+      await _persist();
+      return;
+    }
+
+    onboardingComplete = data['onboardingComplete'] as bool? ?? false;
+    profileReady = data['profileReady'] as bool? ?? false;
+
+    final savedClients = (data['clients'] as List? ?? const [])
+        .whereType<Map>()
+        .map(
+          (value) => Client.fromJson(Map<String, dynamic>.from(value)),
+        )
+        .toList();
+
+    final savedJobs = (data['jobs'] as List? ?? const [])
+        .whereType<Map>()
+        .map(
+          (value) => WorkJob.fromJson(Map<String, dynamic>.from(value)),
+        )
+        .toList();
+
+    if (savedClients.isNotEmpty) {
+      clients
+        ..clear()
+        ..addAll(savedClients);
+    }
+
+    if (savedJobs.isNotEmpty) {
+      jobs
+        ..clear()
+        ..addAll(savedJobs);
+    }
+  }
 
   void setTab(int value) {
     activeTab = value;
@@ -92,6 +149,7 @@ class AppState extends ChangeNotifier {
   void finishOnboarding() {
     onboardingComplete = true;
     notifyListeners();
+    _schedulePersist();
   }
 
   void login() {
@@ -102,12 +160,40 @@ class AppState extends ChangeNotifier {
   void setupProfile() {
     profileReady = true;
     notifyListeners();
+    _schedulePersist();
   }
 
   void addJob(WorkJob job) {
     jobs.insert(0, job);
     notifyListeners();
+    _schedulePersist();
   }
 
-  void updateJob() => notifyListeners();
+  void updateJob() {
+    notifyListeners();
+    _schedulePersist();
+  }
+
+  Future<void> persistNow() => _persist();
+
+  void _schedulePersist() {
+    unawaited(_persist());
+  }
+
+  Future<void> _persist() async {
+    final service = storage;
+    if (service == null) return;
+    try {
+      await service.writeState({
+        'schemaVersion': 2,
+        'onboardingComplete': onboardingComplete,
+        'profileReady': profileReady,
+        'clients': clients.map((client) => client.toJson()).toList(),
+        'jobs': jobs.map((job) => job.toJson()).toList(),
+      });
+    } catch (error, stackTrace) {
+      debugPrint('WORKLOG pohrana nije uspjela: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
 }
