@@ -1,29 +1,10 @@
 import 'package:flutter/material.dart';
 import '../app_state.dart';
+import '../brand.dart';
 import '../models.dart';
 import '../worklog_theme.dart';
 import 'job_flow.dart';
 import 'management.dart';
-
-class SectionTitle extends StatelessWidget {
-  const SectionTitle(this.text, {super.key});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 20, 0, 10),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
 
 class ClientDetailScreen extends StatefulWidget {
   const ClientDetailScreen({
