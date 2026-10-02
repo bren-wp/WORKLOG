@@ -63,6 +63,7 @@ class CompanyProfile {
     this.email = '',
     this.address = '',
     this.oib = '',
+    this.employeeRange = '1 – 5',
   });
 
   final String name;
@@ -71,6 +72,7 @@ class CompanyProfile {
   final String email;
   final String address;
   final String oib;
+  final String employeeRange;
 
   CompanyProfile copyWith({
     String? name,
@@ -79,6 +81,7 @@ class CompanyProfile {
     String? email,
     String? address,
     String? oib,
+    String? employeeRange,
   }) {
     return CompanyProfile(
       name: name ?? this.name,
@@ -87,6 +90,7 @@ class CompanyProfile {
       email: email ?? this.email,
       address: address ?? this.address,
       oib: oib ?? this.oib,
+      employeeRange: employeeRange ?? this.employeeRange,
     );
   }
 
@@ -97,6 +101,7 @@ class CompanyProfile {
         'email': email,
         'address': address,
         'oib': oib,
+        'employeeRange': employeeRange,
       };
 
   factory CompanyProfile.fromJson(Map<String, dynamic> json) {
@@ -107,6 +112,7 @@ class CompanyProfile {
       email: json['email'] as String? ?? '',
       address: json['address'] as String? ?? '',
       oib: json['oib'] as String? ?? '',
+      employeeRange: json['employeeRange'] as String? ?? '1 – 5',
     );
   }
 }
