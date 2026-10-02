@@ -246,6 +246,80 @@ class MaterialItem {
   }
 }
 
+class ConversationMessage {
+  ConversationMessage({
+    String? id,
+    required this.clientId,
+    required this.text,
+    required this.mine,
+    DateTime? createdAt,
+  })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+        createdAt = createdAt ?? DateTime.now();
+
+  final String id;
+  final String clientId;
+  final String text;
+  final bool mine;
+  final DateTime createdAt;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'clientId': clientId,
+        'text': text,
+        'mine': mine,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory ConversationMessage.fromJson(Map<String, dynamic> json) {
+    return ConversationMessage(
+      id: json['id'] as String?,
+      clientId: json['clientId'] as String? ?? '',
+      text: json['text'] as String? ?? '',
+      mine: json['mine'] as bool? ?? true,
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+    );
+  }
+}
+
+class ActivityItem {
+  ActivityItem({
+    String? id,
+    required this.title,
+    required this.subtitle,
+    required this.kind,
+    DateTime? createdAt,
+    this.read = false,
+  })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+        createdAt = createdAt ?? DateTime.now();
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final String kind;
+  final DateTime createdAt;
+  bool read;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'subtitle': subtitle,
+        'kind': kind,
+        'createdAt': createdAt.toIso8601String(),
+        'read': read,
+      };
+
+  factory ActivityItem.fromJson(Map<String, dynamic> json) {
+    return ActivityItem(
+      id: json['id'] as String?,
+      title: json['title'] as String? ?? '',
+      subtitle: json['subtitle'] as String? ?? '',
+      kind: json['kind'] as String? ?? 'system',
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+      read: json['read'] as bool? ?? false,
+    );
+  }
+}
+
 const _croatianMonths = <String>[
   'siječnja',
   'veljače',

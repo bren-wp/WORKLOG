@@ -411,7 +411,10 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
         widget.state.teamMemberById(assignedMemberId)?.name;
     job.setSchedule(scheduledStart, scheduledEnd);
 
-    widget.state.updateJob();
+    widget.state.updateJob(
+      activityTitle: 'Posao ažuriran',
+      activitySubtitle: '${job.title} • ${job.client.name}',
+    );
     Navigator.pop(context, true);
   }
 
@@ -872,7 +875,11 @@ class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
     final wasPlanned = widget.job.status == JobStatus.planned;
     if (wasPlanned) {
       widget.job.status = JobStatus.active;
-      widget.state.updateJob();
+      widget.state.updateJob(
+        activityTitle: 'Posao pokrenut',
+        activitySubtitle:
+            '${widget.job.title} • ${widget.job.client.name}',
+      );
     }
 
     timer = Timer.periodic(
@@ -1485,7 +1492,11 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
     setState(() => processing = true);
     try {
       widget.job.status = JobStatus.completed;
-      widget.state.updateJob();
+      widget.state.updateJob(
+        activityTitle: 'Posao završen',
+        activitySubtitle:
+            '${widget.job.title} • ${widget.job.client.name}',
+      );
       final file = await PdfReportService(storage).generate(widget.job);
       await widget.state.persistNow();
 
@@ -1951,7 +1962,12 @@ class _SendReportScreenState extends State<SendReportScreen> {
 
       if (result.status == ShareResultStatus.success) {
         widget.job.reportSent = true;
-        widget.state.updateJob();
+        widget.state.updateJob(
+          activityTitle: 'Zapisnik podijeljen',
+          activitySubtitle:
+              '${widget.job.title} • ${widget.job.client.name}',
+          kind: 'report',
+        );
         await widget.state.persistNow();
         if (mounted) setState(() {});
       }

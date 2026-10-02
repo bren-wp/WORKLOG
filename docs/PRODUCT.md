@@ -4,11 +4,27 @@
 
 WORKLOG je Android i iOS aplikacija za obrtnike, servisere, montažere i terenske timove. Cilj je da jedan posao ima jedan pouzdan zapis: klijent, lokacija, termin, vrijeme rada, materijal, fotografije, napomene, potpis i završni izvještaj.
 
-## Verzija 0.5.0
+## Verzija 0.6.0
 
-Aplikacija više nije samo UI prototip. Verzija 0.5.0 uvodi stvarni raspored poslova, date/time pickere, potpuno uređivanje postojećeg naloga i funkcionalan kalendar Dan/Tjedan/Mjesec, uz sigurnost, obavijesti i timske funkcije iz ranijih verzija.
+Aplikacija više nije samo UI prototip. Verzija 0.6.0 uklanja statične demo poruke i obavijesti: razgovori se lokalno spremaju po klijentu, a obavijesti su trajni dnevnik stvarnih događaja u aplikaciji.
 
-### Novo u 0.5.0
+### Novo u 0.6.0
+
+- trajno spremljen lokalni dnevnik razgovora po klijentu
+- moje poruke i ručno evidentirani odgovori klijenta s vremenom nastanka
+- prazno stanje umjesto lažnih unaprijed napisanih poruka
+- trajni dnevnik stvarnih aktivnosti umjesto statičnih demo obavijesti
+- read/unread stanje događaja i broj nepročitanih u izborniku
+- označavanje svih događaja pročitanima i uklanjanje pročitanih
+- automatski događaji za novi posao, novog klijenta, člana tima i odgovor klijenta
+- događaji za uređivanje, pokretanje i završetak posla te dijeljenje PDF zapisnika
+- poruke i aktivnosti uključene u lokalni JSON export i schema v6
+- brisanje klijenta uklanja i njegov lokalni razgovor
+- uklonjen stari razvojni `SimplePage` placeholder
+
+Napomena: razgovor u 0.6.0 je lokalna evidencija komunikacije. Ne predstavlja serverski chat niti tvrdi da je poruka isporučena klijentu bez buduće backend integracije.
+
+### Iz 0.5.0
 
 - stvarni `DateTime` raspored za svaki posao
 - migracija starih hrvatskih tekstualnih datuma i vremena iz 0.4 i starijih zapisa
@@ -59,7 +75,7 @@ Aplikacija više nije samo UI prototip. Verzija 0.5.0 uvodi stvarni raspored pos
 - filtriranje poslova prema statusu
 - kalendar s dnevnim, tjednim i mjesečnim prikazom
 - baza klijenata i detalj klijenta
-- razgovor s klijentom
+- lokalna evidencija razgovora s klijentom
 - izrada novog naloga
 - detalj naloga
 - stvarni poziv klijenta preko telefonske aplikacije

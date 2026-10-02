@@ -61,6 +61,43 @@ void main() {
     expect(state.teamMembers.any((item) => item.id == member.id), isTrue);
   });
 
+  test('odgovor klijenta stvara trajni nepročitani događaj', () {
+    final state = AppState();
+    final client = state.clients.first;
+
+    state.addMessage(
+      clientId: client.id,
+      text: 'Potvrđujem termin.',
+      mine: false,
+    );
+
+    expect(state.messagesForClient(client.id), hasLength(1));
+    expect(state.unreadActivityCount, 1);
+    expect(state.activityItems.first.kind, 'message');
+    expect(state.activityItems.first.subtitle, client.name);
+
+    state.markAllActivityRead();
+    expect(state.unreadActivityCount, 0);
+
+    final snapshot = state.exportSnapshot();
+    expect(snapshot['messages'], isA<List>());
+    expect(snapshot['activityItems'], isA<List>());
+  });
+
+  test('moja poruka ne stvara lažnu novu obavijest', () {
+    final state = AppState();
+    final client = state.clients.first;
+
+    state.addMessage(
+      clientId: client.id,
+      text: 'Dolazim prema planu.',
+      mine: true,
+    );
+
+    expect(state.messagesForClient(client.id), hasLength(1));
+    expect(state.activityItems, isEmpty);
+  });
+
   test('klijent bez poslova može se izbrisati', () {
     final state = AppState();
     final client = Client(
