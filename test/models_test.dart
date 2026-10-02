@@ -81,20 +81,14 @@ void main() {
       location: 'Rijeka',
       status: JobStatus.active,
       timeEntries: [
-        WorkTimeEntry(
-          id: 'running-1',
-          startedAt: DateTime(2026, 10, 2, 8),
-        ),
+        WorkTimeEntry(id: 'running-1', startedAt: DateTime(2026, 10, 2, 8)),
       ],
     );
 
     final restored = WorkJob.fromJson(job.toJson());
 
     expect(restored.timerRunning, isTrue);
-    expect(
-      restored.workedSeconds(now: DateTime(2026, 10, 2, 8, 2, 30)),
-      150,
-    );
+    expect(restored.workedSeconds(now: DateTime(2026, 10, 2, 8, 2, 30)), 150);
   });
 
   test('stari zapis bez intervala ostaje kompatibilan', () {
@@ -148,10 +142,7 @@ void main() {
       status: JobStatus.planned,
     );
 
-    job.setSchedule(
-      DateTime(2026, 11, 4, 14),
-      DateTime(2026, 11, 4, 15, 30),
-    );
+    job.setSchedule(DateTime(2026, 11, 4, 14), DateTime(2026, 11, 4, 15, 30));
 
     expect(job.dateLabel, '4. studenoga 2026.');
     expect(job.timeLabel, '14:00 – 15:30');

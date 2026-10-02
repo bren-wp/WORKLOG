@@ -1,10 +1,7 @@
 import 'package:local_auth/local_auth.dart';
 
 class SecurityAuthResult {
-  const SecurityAuthResult({
-    required this.success,
-    this.message,
-  });
+  const SecurityAuthResult({required this.success, this.message});
 
   final bool success;
   final String? message;
@@ -12,7 +9,7 @@ class SecurityAuthResult {
 
 class LocalSecurityService {
   LocalSecurityService({LocalAuthentication? authentication})
-      : _authentication = authentication ?? LocalAuthentication();
+    : _authentication = authentication ?? LocalAuthentication();
 
   final LocalAuthentication _authentication;
 
@@ -32,8 +29,7 @@ class LocalSecurityService {
       if (!available) {
         return const SecurityAuthResult(
           success: false,
-          message:
-              'Na uređaju nije dostupna biometrija, PIN, uzorak ili sigurnosna šifra.',
+          message: 'Na uređaju nije dostupna biometrija, PIN, uzorak ili sigurnosna šifra.',
         );
       }
 
@@ -75,8 +71,7 @@ class LocalSecurityService {
         'Autentikacija je privremeno zaključana. Pokušaj ponovno kasnije.',
       LocalAuthExceptionCode.biometricLockout =>
         'Biometrija je zaključana. Otključaj uređaj sigurnosnom šifrom.',
-      LocalAuthExceptionCode.userCanceled =>
-        'Autentikacija je otkazana.',
+      LocalAuthExceptionCode.userCanceled => 'Autentikacija je otkazana.',
       LocalAuthExceptionCode.systemCanceled =>
         'Sustav je prekinuo autentikaciju.',
       _ => 'Lokalna autentikacija nije uspjela.',

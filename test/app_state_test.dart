@@ -3,23 +3,23 @@ import 'package:worklog/app_state.dart';
 import 'package:worklog/models.dart';
 
 Client testClient({String id = 'client-1'}) => Client(
-      id: id,
-      name: 'Testni klijent',
-      type: 'Tvrtka',
-      phone: '091 000 0000',
-      email: 'test@example.com',
-      address: 'Rijeka',
-    );
+  id: id,
+  name: 'Testni klijent',
+  type: 'Tvrtka',
+  phone: '091 000 0000',
+  email: 'test@example.com',
+  address: 'Rijeka',
+);
 
 WorkJob testJob(Client client) => WorkJob(
-      id: 'job-1',
-      title: 'Servis uređaja',
-      client: client,
-      location: 'Rijeka',
-      scheduledStart: DateTime(2026, 10, 2, 8),
-      scheduledEnd: DateTime(2026, 10, 2, 10),
-      status: JobStatus.planned,
-    );
+  id: 'job-1',
+  title: 'Servis uređaja',
+  client: client,
+  location: 'Rijeka',
+  scheduledStart: DateTime(2026, 10, 2, 8),
+  scheduledEnd: DateTime(2026, 10, 2, 10),
+  status: JobStatus.planned,
+);
 
 void main() {
   test('produkcijsko stanje ne sadrži demo klijente ni poslove', () {
@@ -93,10 +93,7 @@ void main() {
     expect(state.startJobTimer(job, at: firstStart), isTrue);
     expect(job.status, JobStatus.active);
     expect(
-      state.pauseJobTimer(
-        job,
-        at: firstStart.add(const Duration(seconds: 90)),
-      ),
+      state.pauseJobTimer(job, at: firstStart.add(const Duration(seconds: 90))),
       isTrue,
     );
     expect(job.status, JobStatus.paused);
@@ -104,21 +101,14 @@ void main() {
     final secondStart = DateTime(2026, 10, 2, 9);
     expect(state.startJobTimer(job, at: secondStart), isTrue);
     expect(
-      state.stopJobTimer(
-        job,
-        at: secondStart.add(const Duration(seconds: 30)),
-      ),
+      state.stopJobTimer(job, at: secondStart.add(const Duration(seconds: 30))),
       isTrue,
     );
 
     expect(job.timeEntries, hasLength(2));
     expect(job.workedSeconds(), 120);
     expect(
-      state.adjustJobTime(
-        job,
-        minutes: 15,
-        reason: 'Naknadno evidentiran rad',
-      ),
+      state.adjustJobTime(job, minutes: 15, reason: 'Naknadno evidentiran rad'),
       isTrue,
     );
     expect(job.manualAdjustmentMinutes, 15);

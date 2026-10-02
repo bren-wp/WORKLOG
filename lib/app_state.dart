@@ -56,19 +56,14 @@ class AppState extends ChangeNotifier {
     final savedMessages = (data['messages'] as List? ?? const [])
         .whereType<Map>()
         .map(
-          (value) => ConversationMessage.fromJson(
-            Map<String, dynamic>.from(value),
-          ),
+          (value) =>
+              ConversationMessage.fromJson(Map<String, dynamic>.from(value)),
         )
         .toList();
 
     final savedActivity = (data['activityItems'] as List? ?? const [])
         .whereType<Map>()
-        .map(
-          (value) => ActivityItem.fromJson(
-            Map<String, dynamic>.from(value),
-          ),
-        )
+        .map((value) => ActivityItem.fromJson(Map<String, dynamic>.from(value)))
         .toList();
 
     final companyRaw = data['companyProfile'];
@@ -324,8 +319,7 @@ class AppState extends ChangeNotifier {
 
   bool removeTeamMember(String memberId) {
     final hasOpenJobs = jobs.any(
-      (job) =>
-          job.assignedMemberId == memberId && !job.status.isClosed,
+      (job) => job.assignedMemberId == memberId && !job.status.isClosed,
     );
     if (hasOpenJobs) return false;
 
@@ -344,10 +338,9 @@ class AppState extends ChangeNotifier {
   }
 
   List<ConversationMessage> messagesForClient(String clientId) {
-    final result = messages
-        .where((message) => message.clientId == clientId)
-        .toList()
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final result =
+        messages.where((message) => message.clientId == clientId).toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return result;
   }
 
@@ -360,11 +353,7 @@ class AppState extends ChangeNotifier {
     if (clean.isEmpty) return;
 
     messages.add(
-      ConversationMessage(
-        clientId: clientId,
-        text: clean,
-        mine: mine,
-      ),
+      ConversationMessage(clientId: clientId, text: clean, mine: mine),
     );
 
     if (!mine) {
@@ -424,11 +413,7 @@ class AppState extends ChangeNotifier {
     required String subtitle,
     required String kind,
   }) {
-    _recordActivity(
-      title: title,
-      subtitle: subtitle,
-      kind: kind,
-    );
+    _recordActivity(title: title, subtitle: subtitle, kind: kind);
     notifyListeners();
     _schedulePersist();
   }
@@ -440,11 +425,7 @@ class AppState extends ChangeNotifier {
   }) {
     activityItems.insert(
       0,
-      ActivityItem(
-        title: title,
-        subtitle: subtitle,
-        kind: kind,
-      ),
+      ActivityItem(title: title, subtitle: subtitle, kind: kind),
     );
     if (activityItems.length > 200) {
       activityItems.removeRange(200, activityItems.length);
@@ -466,16 +447,15 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> exportSnapshot() => {
-        'schemaVersion': 7,
-        'companyProfile': companyProfile.toJson(),
-        'preferences': preferences.toJson(),
-        'clients': clients.map((client) => client.toJson()).toList(),
-        'teamMembers': teamMembers.map((member) => member.toJson()).toList(),
-        'messages': messages.map((message) => message.toJson()).toList(),
-        'activityItems':
-            activityItems.map((item) => item.toJson()).toList(),
-        'jobs': jobs.map((job) => job.toJson()).toList(),
-      };
+    'schemaVersion': 7,
+    'companyProfile': companyProfile.toJson(),
+    'preferences': preferences.toJson(),
+    'clients': clients.map((client) => client.toJson()).toList(),
+    'teamMembers': teamMembers.map((member) => member.toJson()).toList(),
+    'messages': messages.map((message) => message.toJson()).toList(),
+    'activityItems': activityItems.map((item) => item.toJson()).toList(),
+    'jobs': jobs.map((job) => job.toJson()).toList(),
+  };
 
   Future<void> resetLocalData() async {
     final service = storage;
@@ -523,8 +503,7 @@ class AppState extends ChangeNotifier {
         'clients': clients.map((client) => client.toJson()).toList(),
         'teamMembers': teamMembers.map((member) => member.toJson()).toList(),
         'messages': messages.map((message) => message.toJson()).toList(),
-        'activityItems':
-            activityItems.map((item) => item.toJson()).toList(),
+        'activityItems': activityItems.map((item) => item.toJson()).toList(),
         'jobs': jobs.map((job) => job.toJson()).toList(),
       });
     } catch (error, stackTrace) {

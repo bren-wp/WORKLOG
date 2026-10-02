@@ -32,8 +32,7 @@ class WorklogApp extends StatefulWidget {
   State<WorklogApp> createState() => _WorklogAppState();
 }
 
-class _WorklogAppState extends State<WorklogApp>
-    with WidgetsBindingObserver {
+class _WorklogAppState extends State<WorklogApp> with WidgetsBindingObserver {
   late final AppState state = widget.state ?? AppState();
   late final LocalSecurityService security =
       widget.security ?? LocalSecurityService();
@@ -103,10 +102,7 @@ class _WorklogAppState extends State<WorklogApp>
     } else if (!state.profileReady) {
       home = ProfileSetupScreen(state: state);
     } else if (state.preferences.biometricLockEnabled && locked) {
-      home = AppLockScreen(
-        security: security,
-        onUnlocked: unlock,
-      );
+      home = AppLockScreen(security: security, onUnlocked: unlock);
     } else {
       home = HomeShell(state: state);
     }

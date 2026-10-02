@@ -10,19 +10,18 @@ enum JobStatus {
 
 extension JobStatusPresentation on JobStatus {
   String get label => switch (this) {
-        JobStatus.planned => 'Planirano',
-        JobStatus.confirmed => 'Potvrđeno',
-        JobStatus.enRoute => 'Na putu',
-        JobStatus.active => 'U tijeku',
-        JobStatus.paused => 'Pauzirano',
-        JobStatus.completed => 'Završeno',
-        JobStatus.cancelled => 'Otkazano',
-      };
+    JobStatus.planned => 'Planirano',
+    JobStatus.confirmed => 'Potvrđeno',
+    JobStatus.enRoute => 'Na putu',
+    JobStatus.active => 'U tijeku',
+    JobStatus.paused => 'Pauzirano',
+    JobStatus.completed => 'Završeno',
+    JobStatus.cancelled => 'Otkazano',
+  };
 
   bool get isClosed =>
       this == JobStatus.completed || this == JobStatus.cancelled;
 }
-
 
 class Client {
   Client({
@@ -59,13 +58,13 @@ class Client {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'type': type,
-        'phone': phone,
-        'email': email,
-        'address': address,
-      };
+    'id': id,
+    'name': name,
+    'type': type,
+    'phone': phone,
+    'email': email,
+    'address': address,
+  };
 
   factory Client.fromJson(Map<String, dynamic> json) {
     return Client(
@@ -119,14 +118,14 @@ class CompanyProfile {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'activity': activity,
-        'phone': phone,
-        'email': email,
-        'address': address,
-        'oib': oib,
-        'employeeRange': employeeRange,
-      };
+    'name': name,
+    'activity': activity,
+    'phone': phone,
+    'email': email,
+    'address': address,
+    'oib': oib,
+    'employeeRange': employeeRange,
+  };
 
   factory CompanyProfile.fromJson(Map<String, dynamic> json) {
     return CompanyProfile(
@@ -176,13 +175,13 @@ class TeamMember {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'role': role,
-        'phone': phone,
-        'email': email,
-        'active': active,
-      };
+    'id': id,
+    'name': name,
+    'role': role,
+    'phone': phone,
+    'email': email,
+    'active': active,
+  };
 
   factory TeamMember.fromJson(Map<String, dynamic> json) {
     return TeamMember(
@@ -216,29 +215,25 @@ class AppPreferences {
     bool? compactCards,
   }) {
     return AppPreferences(
-      notificationsEnabled:
-          notificationsEnabled ?? this.notificationsEnabled,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       autoSaveEnabled: autoSaveEnabled ?? this.autoSaveEnabled,
-      biometricLockEnabled:
-          biometricLockEnabled ?? this.biometricLockEnabled,
+      biometricLockEnabled: biometricLockEnabled ?? this.biometricLockEnabled,
       compactCards: compactCards ?? this.compactCards,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'notificationsEnabled': notificationsEnabled,
-        'autoSaveEnabled': autoSaveEnabled,
-        'biometricLockEnabled': biometricLockEnabled,
-        'compactCards': compactCards,
-      };
+    'notificationsEnabled': notificationsEnabled,
+    'autoSaveEnabled': autoSaveEnabled,
+    'biometricLockEnabled': biometricLockEnabled,
+    'compactCards': compactCards,
+  };
 
   factory AppPreferences.fromJson(Map<String, dynamic> json) {
     return AppPreferences(
-      notificationsEnabled:
-          json['notificationsEnabled'] as bool? ?? false,
+      notificationsEnabled: json['notificationsEnabled'] as bool? ?? false,
       autoSaveEnabled: json['autoSaveEnabled'] as bool? ?? true,
-      biometricLockEnabled:
-          json['biometricLockEnabled'] as bool? ?? false,
+      biometricLockEnabled: json['biometricLockEnabled'] as bool? ?? false,
       compactCards: json['compactCards'] as bool? ?? false,
     );
   }
@@ -256,10 +251,10 @@ class MaterialItem {
   final double price;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'quantity': quantity,
-        'price': price,
-      };
+    'name': name,
+    'quantity': quantity,
+    'price': price,
+  };
 
   factory MaterialItem.fromJson(Map<String, dynamic> json) {
     return MaterialItem(
@@ -277,8 +272,8 @@ class ConversationMessage {
     required this.text,
     required this.mine,
     DateTime? createdAt,
-  })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
-        createdAt = createdAt ?? DateTime.now();
+  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+       createdAt = createdAt ?? DateTime.now();
 
   final String id;
   final String clientId;
@@ -287,12 +282,12 @@ class ConversationMessage {
   final DateTime createdAt;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'clientId': clientId,
-        'text': text,
-        'mine': mine,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'clientId': clientId,
+    'text': text,
+    'mine': mine,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   factory ConversationMessage.fromJson(Map<String, dynamic> json) {
     return ConversationMessage(
@@ -313,8 +308,8 @@ class ActivityItem {
     required this.kind,
     DateTime? createdAt,
     this.read = false,
-  })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
-        createdAt = createdAt ?? DateTime.now();
+  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+       createdAt = createdAt ?? DateTime.now();
 
   final String id;
   final String title;
@@ -324,13 +319,13 @@ class ActivityItem {
   bool read;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'subtitle': subtitle,
-        'kind': kind,
-        'createdAt': createdAt.toIso8601String(),
-        'read': read,
-      };
+    'id': id,
+    'title': title,
+    'subtitle': subtitle,
+    'kind': kind,
+    'createdAt': createdAt.toIso8601String(),
+    'read': read,
+  };
 
   factory ActivityItem.fromJson(Map<String, dynamic> json) {
     return ActivityItem(
@@ -431,11 +426,8 @@ DateTime? parseCroatianScheduleEnd(
 }
 
 class WorkTimeEntry {
-  WorkTimeEntry({
-    String? id,
-    required this.startedAt,
-    this.endedAt,
-  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
+  WorkTimeEntry({String? id, required this.startedAt, this.endedAt})
+    : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
   final String id;
   final DateTime startedAt;
@@ -450,15 +442,16 @@ class WorkTimeEntry {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'startedAt': startedAt.toIso8601String(),
-        'endedAt': endedAt?.toIso8601String(),
-      };
+    'id': id,
+    'startedAt': startedAt.toIso8601String(),
+    'endedAt': endedAt?.toIso8601String(),
+  };
 
   factory WorkTimeEntry.fromJson(Map<String, dynamic> json) {
     return WorkTimeEntry(
       id: json['id'] as String?,
-      startedAt: DateTime.tryParse(json['startedAt'] as String? ?? '') ??
+      startedAt:
+          DateTime.tryParse(json['startedAt'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       endedAt: DateTime.tryParse(json['endedAt'] as String? ?? ''),
     );
@@ -491,18 +484,20 @@ class WorkJob {
     this.assignedMemberName,
     this.scheduledStart,
     this.scheduledEnd,
-  })  : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
-        dateLabel = dateLabel ??
-            (scheduledStart == null ? '' : formatCroatianDate(scheduledStart)),
-        timeLabel = timeLabel ??
-            (scheduledStart == null
-                ? ''
-                : formatTimeRange(scheduledStart, scheduledEnd)),
-        timeEntries = timeEntries ?? <WorkTimeEntry>[],
-        materials = materials ?? <MaterialItem>[],
-        notes = notes ?? <String>[],
-        beforePhotoPaths = beforePhotoPaths ?? <String>[],
-        afterPhotoPaths = afterPhotoPaths ?? <String>[];
+  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+       dateLabel =
+           dateLabel ??
+           (scheduledStart == null ? '' : formatCroatianDate(scheduledStart)),
+       timeLabel =
+           timeLabel ??
+           (scheduledStart == null
+               ? ''
+               : formatTimeRange(scheduledStart, scheduledEnd)),
+       timeEntries = timeEntries ?? <WorkTimeEntry>[],
+       materials = materials ?? <MaterialItem>[],
+       notes = notes ?? <String>[],
+       beforePhotoPaths = beforePhotoPaths ?? <String>[],
+       afterPhotoPaths = afterPhotoPaths ?? <String>[];
 
   final String id;
   String title;
@@ -560,14 +555,13 @@ class WorkJob {
     final entry = activeTimeEntry;
     if (entry == null) return false;
     final endedAt = at ?? DateTime.now();
-    entry.endedAt = endedAt.isBefore(entry.startedAt) ? entry.startedAt : endedAt;
+    entry.endedAt = endedAt.isBefore(entry.startedAt)
+        ? entry.startedAt
+        : endedAt;
     return true;
   }
 
-  void addManualTimeAdjustment({
-    required int minutes,
-    required String reason,
-  }) {
+  void addManualTimeAdjustment({required int minutes, required String reason}) {
     if (minutes == 0) return;
     manualAdjustmentMinutes += minutes;
     manualAdjustmentReason = reason.trim();
@@ -581,31 +575,31 @@ class WorkJob {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'client': client.toJson(),
-        'location': location,
-        'dateLabel': dateLabel,
-        'timeLabel': timeLabel,
-        'scheduledStart': scheduledStart?.toIso8601String(),
-        'scheduledEnd': scheduledEnd?.toIso8601String(),
-        'status': status.name,
-        'description': description,
-        'priority': priority,
-        'minutesWorked': minutesWorked,
-        'timeEntries': timeEntries.map((entry) => entry.toJson()).toList(),
-        'manualAdjustmentMinutes': manualAdjustmentMinutes,
-        'manualAdjustmentReason': manualAdjustmentReason,
-        'materials': materials.map((item) => item.toJson()).toList(),
-        'notes': notes,
-        'beforePhotoPaths': beforePhotoPaths,
-        'afterPhotoPaths': afterPhotoPaths,
-        'signaturePath': signaturePath,
-        'reportPath': reportPath,
-        'reportSent': reportSent,
-        'assignedMemberId': assignedMemberId,
-        'assignedMemberName': assignedMemberName,
-      };
+    'id': id,
+    'title': title,
+    'client': client.toJson(),
+    'location': location,
+    'dateLabel': dateLabel,
+    'timeLabel': timeLabel,
+    'scheduledStart': scheduledStart?.toIso8601String(),
+    'scheduledEnd': scheduledEnd?.toIso8601String(),
+    'status': status.name,
+    'description': description,
+    'priority': priority,
+    'minutesWorked': minutesWorked,
+    'timeEntries': timeEntries.map((entry) => entry.toJson()).toList(),
+    'manualAdjustmentMinutes': manualAdjustmentMinutes,
+    'manualAdjustmentReason': manualAdjustmentReason,
+    'materials': materials.map((item) => item.toJson()).toList(),
+    'notes': notes,
+    'beforePhotoPaths': beforePhotoPaths,
+    'afterPhotoPaths': afterPhotoPaths,
+    'signaturePath': signaturePath,
+    'reportPath': reportPath,
+    'reportSent': reportSent,
+    'assignedMemberId': assignedMemberId,
+    'assignedMemberName': assignedMemberName,
+  };
 
   factory WorkJob.fromJson(Map<String, dynamic> json) {
     final statusName = json['status'] as String? ?? JobStatus.planned.name;
@@ -621,10 +615,9 @@ class WorkJob {
     );
     final resolvedStart =
         savedStart ?? parseCroatianScheduleStart(dateLabel, timeLabel);
-    final savedEnd = DateTime.tryParse(
-      json['scheduledEnd'] as String? ?? '',
-    );
-    final resolvedEnd = savedEnd ??
+    final savedEnd = DateTime.tryParse(json['scheduledEnd'] as String? ?? '');
+    final resolvedEnd =
+        savedEnd ??
         parseCroatianScheduleEnd(dateLabel, timeLabel, resolvedStart);
 
     return WorkJob(
@@ -645,26 +638,16 @@ class WorkJob {
       timeEntries: (json['timeEntries'] as List? ?? const [])
           .whereType<Map>()
           .map(
-            (item) => WorkTimeEntry.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
+            (item) => WorkTimeEntry.fromJson(Map<String, dynamic>.from(item)),
           )
-          .where(
-            (entry) =>
-                entry.startedAt.millisecondsSinceEpoch > 0,
-          )
+          .where((entry) => entry.startedAt.millisecondsSinceEpoch > 0)
           .toList(),
       manualAdjustmentMinutes:
           (json['manualAdjustmentMinutes'] as num?)?.toInt() ?? 0,
-      manualAdjustmentReason:
-          json['manualAdjustmentReason'] as String? ?? '',
+      manualAdjustmentReason: json['manualAdjustmentReason'] as String? ?? '',
       materials: (json['materials'] as List? ?? const [])
           .whereType<Map>()
-          .map(
-            (item) => MaterialItem.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
-          )
+          .map((item) => MaterialItem.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
       notes: (json['notes'] as List? ?? const []).whereType<String>().toList(),
       beforePhotoPaths: (json['beforePhotoPaths'] as List? ?? const [])

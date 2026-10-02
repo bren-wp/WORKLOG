@@ -54,35 +54,24 @@ class PdfReportService {
             style: const pw.TextStyle(fontSize: 13, color: PdfColors.grey700),
           ),
           pw.SizedBox(height: 18),
-          _section(
-            'Podaci o poslu',
-            [
-              _row('Klijent', job.client.name),
-              _row('Telefon', job.client.phone),
-              _row('Lokacija', job.location),
-              _row('Datum', job.dateLabel),
-              _row('Vrijeme', job.timeLabel),
-              _row('Status', job.statusLabel),
-              _row('Prioritet', job.priority),
-              _row(
-                'Terenski tehnicar',
-                job.assignedMemberName ?? 'Nije dodijeljeno',
-              ),
-            ],
-          ),
-          if (job.description.trim().isNotEmpty)
-            _section(
-              'Opis posla',
-              [
-                pw.Text(_pdfSafe(job.description)),
-              ],
+          _section('Podaci o poslu', [
+            _row('Klijent', job.client.name),
+            _row('Telefon', job.client.phone),
+            _row('Lokacija', job.location),
+            _row('Datum', job.dateLabel),
+            _row('Vrijeme', job.timeLabel),
+            _row('Status', job.statusLabel),
+            _row('Prioritet', job.priority),
+            _row(
+              'Terenski tehnicar',
+              job.assignedMemberName ?? 'Nije dodijeljeno',
             ),
-          _section(
-            'Evidencija rada',
-            [
-              _row('Ukupno evidentirano', _duration(job.totalWorkedMinutes)),
-            ],
-          ),
+          ]),
+          if (job.description.trim().isNotEmpty)
+            _section('Opis posla', [pw.Text(_pdfSafe(job.description))]),
+          _section('Evidencija rada', [
+            _row('Ukupno evidentirano', _duration(job.totalWorkedMinutes)),
+          ]),
           _section(
             'Materijal',
             job.materials.isEmpty
@@ -127,24 +116,24 @@ class PdfReportService {
           if (beforeImages.isNotEmpty || afterImages.isNotEmpty)
             _photoSection(beforeImages, afterImages),
           if (signatureBytes != null)
-            _section(
-              'Potpis klijenta',
-              [
-                pw.Container(
-                  height: 100,
-                  alignment: pw.Alignment.centerLeft,
-                  child: pw.Image(
-                    pw.MemoryImage(signatureBytes),
-                    fit: pw.BoxFit.contain,
-                  ),
+            _section('Potpis klijenta', [
+              pw.Container(
+                height: 100,
+                alignment: pw.Alignment.centerLeft,
+                child: pw.Image(
+                  pw.MemoryImage(signatureBytes),
+                  fit: pw.BoxFit.contain,
                 ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  _pdfSafe(job.client.name),
-                  style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+              ),
+              pw.SizedBox(height: 5),
+              pw.Text(
+                _pdfSafe(job.client.name),
+                style: const pw.TextStyle(
+                  fontSize: 9,
+                  color: PdfColors.grey700,
                 ),
-              ],
-            ),
+              ),
+            ]),
           pw.SizedBox(height: 10),
           pw.Container(
             padding: const pw.EdgeInsets.all(12),
@@ -166,7 +155,10 @@ class PdfReportService {
                 pw.Spacer(),
                 pw.Text(
                   'Generirano u WORKLOG aplikaciji',
-                  style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+                  style: const pw.TextStyle(
+                    fontSize: 8,
+                    color: PdfColors.grey700,
+                  ),
                 ),
               ],
             ),
@@ -186,11 +178,7 @@ class PdfReportService {
     return File(path);
   }
 
-  Future<ShareResult> share(
-    BuildContext context,
-    File file,
-    WorkJob job,
-  ) {
+  Future<ShareResult> share(BuildContext context, File file, WorkJob job) {
     return SharePlus.instance.share(
       ShareParams(
         title: 'WORKLOG zapisnik',
@@ -311,32 +299,26 @@ class PdfReportService {
     );
   }
 
-  pw.Widget _photoSection(
-    List<Uint8List> before,
-    List<Uint8List> after,
-  ) {
-    return _section(
-      'Fotografije prije i poslije',
-      [
-        if (before.isNotEmpty) ...[
-          pw.Text(
-            'Prije',
-            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 6),
-          _photoGrid(before),
-          pw.SizedBox(height: 10),
-        ],
-        if (after.isNotEmpty) ...[
-          pw.Text(
-            'Poslije',
-            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 6),
-          _photoGrid(after),
-        ],
+  pw.Widget _photoSection(List<Uint8List> before, List<Uint8List> after) {
+    return _section('Fotografije prije i poslije', [
+      if (before.isNotEmpty) ...[
+        pw.Text(
+          'Prije',
+          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 6),
+        _photoGrid(before),
+        pw.SizedBox(height: 10),
       ],
-    );
+      if (after.isNotEmpty) ...[
+        pw.Text(
+          'Poslije',
+          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 6),
+        _photoGrid(after),
+      ],
+    ]);
   }
 
   pw.Widget _photoGrid(List<Uint8List> images) {
@@ -352,10 +334,7 @@ class PdfReportService {
               decoration: pw.BoxDecoration(
                 border: pw.Border.all(color: PdfColors.grey300),
               ),
-              child: pw.Image(
-                pw.MemoryImage(bytes),
-                fit: pw.BoxFit.cover,
-              ),
+              child: pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.cover),
             ),
           )
           .toList(),

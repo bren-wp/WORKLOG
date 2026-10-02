@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'worklog_theme.dart';
 
 class WorklogMark extends StatelessWidget {
@@ -50,8 +51,14 @@ class WorklogWordmark extends StatelessWidget {
               letterSpacing: -.8,
             ),
             children: const [
-              TextSpan(text: "WORK", style: TextStyle(color: Colors.white)),
-              TextSpan(text: "LOG", style: TextStyle(color: WorklogColors.primary)),
+              TextSpan(
+                text: "WORK",
+                style: TextStyle(color: Colors.white),
+              ),
+              TextSpan(
+                text: "LOG",
+                style: TextStyle(color: WorklogColors.primary),
+              ),
             ],
           ),
         ),

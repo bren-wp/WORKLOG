@@ -104,7 +104,10 @@ class _ClientEditorScreenState extends State<ClientEditorScreen> {
                 prefixIcon: Icon(Icons.badge_outlined),
               ),
               items: const [
-                DropdownMenuItem(value: 'Privatna osoba', child: Text('Privatna osoba')),
+                DropdownMenuItem(
+                  value: 'Privatna osoba',
+                  child: Text('Privatna osoba'),
+                ),
                 DropdownMenuItem(value: 'Tvrtka', child: Text('Tvrtka')),
                 DropdownMenuItem(value: 'Obrt', child: Text('Obrt')),
                 DropdownMenuItem(value: 'Udruga', child: Text('Udruga')),
@@ -290,16 +293,18 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                 DropdownMenuItem(value: '21 – 50', child: Text('21 – 50')),
                 DropdownMenuItem(value: '51+', child: Text('51+')),
               ],
-              onChanged: (value) => setState(
-                () => employeeRange = value ?? employeeRange,
-              ),
+              onChanged: (value) =>
+                  setState(() => employeeRange = value ?? employeeRange),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: oib,
               keyboardType: TextInputType.number,
               maxLength: 11,
-              decoration: const InputDecoration(labelText: 'OIB', counterText: ''),
+              decoration: const InputDecoration(
+                labelText: 'OIB',
+                counterText: '',
+              ),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -359,10 +364,8 @@ class TeamScreen extends StatelessWidget {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => TeamMemberEditorScreen(
-                        state: state,
-                        member: member,
-                      ),
+                      builder: (_) =>
+                          TeamMemberEditorScreen(state: state, member: member),
                     ),
                   ),
                   leading: CircleAvatar(
@@ -397,11 +400,7 @@ class TeamScreen extends StatelessWidget {
 }
 
 class TeamMemberEditorScreen extends StatefulWidget {
-  const TeamMemberEditorScreen({
-    super.key,
-    required this.state,
-    this.member,
-  });
+  const TeamMemberEditorScreen({super.key, required this.state, this.member});
 
   final AppState state;
   final TeamMember? member;
@@ -474,9 +473,7 @@ class _TeamMemberEditorScreenState extends State<TeamMemberEditorScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Ukloniti člana?'),
-        content: Text(
-          'Član ${current.name} bit će uklonjen s ovog uređaja.',
-        ),
+        content: Text('Član ${current.name} bit će uklonjen s ovog uređaja.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -542,7 +539,9 @@ class _TeamMemberEditorScreenState extends State<TeamMemberEditorScreen> {
               value: active,
               onChanged: (value) => setState(() => active = value),
               title: const Text('Aktivan član'),
-              subtitle: const Text('Aktivni član može primati terenske zadatke.'),
+              subtitle: const Text(
+                'Aktivni član može primati terenske zadatke.',
+              ),
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 20),
@@ -603,9 +602,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
 
       widget.state.updatePreferences(
-        widget.state.preferences.copyWith(
-          notificationsEnabled: granted,
-        ),
+        widget.state.preferences.copyWith(notificationsEnabled: granted),
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -637,9 +634,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await notifications.showTestNotification();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Testna WORKLOG obavijest je poslana.'),
-        ),
+        const SnackBar(content: Text('Testna WORKLOG obavijest je poslana.')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -664,8 +659,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => securityBusy = true);
     try {
       final result = await security.authenticate(
-        reason:
-            'Potvrdi identitet za uključivanje zaključavanja WORKLOG aplikacije.',
+        reason: 'Potvrdi identitet za uključivanje zaključavanja WORKLOG aplikacije.',
       );
       if (!mounted) return;
 
@@ -675,9 +669,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Zaključavanje aplikacije je uključeno.',
-            ),
+            content: Text('Zaključavanje aplikacije je uključeno.'),
           ),
         );
       } else {
@@ -686,9 +678,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              result.message ?? 'Autentikacija nije potvrđena.',
-            ),
+            content: Text(result.message ?? 'Autentikacija nije potvrđena.'),
           ),
         );
       }
@@ -718,8 +708,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     SwitchListTile(
                       value: prefs.notificationsEnabled,
-                      onChanged:
-                          notificationBusy ? null : toggleNotifications,
+                      onChanged: notificationBusy ? null : toggleNotifications,
                       secondary: notificationBusy
                           ? const SizedBox.square(
                               dimension: 20,
@@ -736,9 +725,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (prefs.notificationsEnabled) ...[
                       const Divider(height: 1),
                       ListTile(
-                        onTap: notificationBusy
-                            ? null
-                            : sendTestNotification,
+                        onTap: notificationBusy ? null : sendTestNotification,
                         leading: const Icon(Icons.notification_add_outlined),
                         title: const Text('Pošalji testnu obavijest'),
                         subtitle: const Text(
@@ -831,9 +818,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     try {
       final bytes = Uint8List.fromList(
         utf8.encode(
-          const JsonEncoder.withIndent('  ').convert(
-            widget.state.exportSnapshot(),
-          ),
+          const JsonEncoder.withIndent('  ')
+              .convert(widget.state.exportSnapshot()),
         ),
       );
       final path = await storage.persistBytes(

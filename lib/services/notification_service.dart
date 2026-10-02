@@ -22,10 +22,7 @@ class WorklogNotificationService {
       requestBadgePermission: false,
       requestSoundPermission: false,
     );
-    const settings = InitializationSettings(
-      android: android,
-      iOS: darwin,
-    );
+    const settings = InitializationSettings(android: android, iOS: darwin);
 
     await _plugin.initialize(settings: settings);
     _initialized = true;
@@ -37,7 +34,8 @@ class WorklogNotificationService {
     if (Platform.isAndroid) {
       final result = await _plugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.requestNotificationsPermission();
       return result ?? true;
     }
@@ -45,12 +43,9 @@ class WorklogNotificationService {
     if (Platform.isIOS) {
       final result = await _plugin
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
+            IOSFlutterLocalNotificationsPlugin
+          >()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
       return result ?? false;
     }
 
@@ -73,10 +68,7 @@ class WorklogNotificationService {
       presentBadge: true,
       presentSound: true,
     );
-    const details = NotificationDetails(
-      android: android,
-      iOS: ios,
-    );
+    const details = NotificationDetails(android: android, iOS: ios);
 
     await _plugin.show(
       id: 4001,
