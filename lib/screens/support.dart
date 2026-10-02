@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../app_state.dart';
-import '../brand.dart';
 import '../models.dart';
 import '../worklog_theme.dart';
 import 'job_flow.dart';
