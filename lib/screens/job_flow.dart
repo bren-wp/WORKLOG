@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -510,13 +509,7 @@ class _JobEditorScreenState extends State<JobEditorScreen> {
                   .map(
                     (value) => DropdownMenuItem(
                       value: value,
-                      child: Text(
-                        switch (value) {
-                          JobStatus.planned => 'Planirano',
-                          JobStatus.active => 'U tijeku',
-                          JobStatus.completed => 'Završeno',
-                        },
-                      ),
+                      child: Text(value.label),
                     ),
                   )
                   .toList(),
@@ -846,7 +839,12 @@ class ActionButton extends StatelessWidget {
 }
 
 class TimeTrackingScreen extends StatefulWidget {
-  const TimeTrackingScreen({super.key, required this.state, required this.job});
+  const TimeTrackingScreen({
+    super.key,
+    required this.state,
+    required this.job,
+  });
+
   final AppState state;
   final WorkJob job;
 
@@ -855,38 +853,46 @@ class TimeTrackingScreen extends StatefulWidget {
 }
 
 class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
-  Timer? timer;
-  int seconds = 0;
-  bool running = false;
+  Timer? ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTicker();
+  }
 
   @override
   void dispose() {
-    timer?.cancel();
+    ticker?.cancel();
     super.dispose();
   }
 
+  void _syncTicker() {
+    ticker?.cancel();
+    ticker = null;
+    if (!widget.job.timerRunning) return;
+    ticker = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) {
+        if (mounted) setState(() {});
+      },
+    );
+  }
+
   Future<void> toggle() async {
-    if (running) {
-      timer?.cancel();
-      setState(() => running = false);
+    if (widget.job.timerRunning) {
+      widget.state.pauseJobTimer(widget.job);
+      _syncTicker();
+      if (mounted) setState(() {});
       return;
     }
 
     final wasPlanned = widget.job.status == JobStatus.planned;
-    if (wasPlanned) {
-      widget.job.status = JobStatus.active;
-      widget.state.updateJob(
-        activityTitle: 'Posao pokrenut',
-        activitySubtitle:
-            '${widget.job.title} • ${widget.job.client.name}',
-      );
-    }
+    final started = widget.state.startJobTimer(widget.job);
+    if (!started) return;
 
-    timer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => setState(() => seconds++),
-    );
-    setState(() => running = true);
+    _syncTicker();
+    if (mounted) setState(() {});
 
     if (wasPlanned && widget.state.preferences.notificationsEnabled) {
       try {
@@ -895,22 +901,108 @@ class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
           clientName: widget.job.client.name,
         );
       } catch (_) {
-        // Timer mora nastaviti raditi čak i ako OS odbije obavijest.
+        // Mjerenje mora nastaviti raditi čak i ako OS odbije obavijest.
       }
     }
   }
 
+  void stop() {
+    if (!widget.state.stopJobTimer(widget.job)) return;
+    _syncTicker();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> adjustTime() async {
+    final minutesController = TextEditingController();
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Ručna korekcija vremena'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: minutesController,
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
+              decoration: const InputDecoration(
+                labelText: 'Minute (+ ili -)',
+                hintText: 'npr. 15 ili -10',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Razlog korekcije',
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Odustani'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Spremi korekciju'),
+          ),
+        ],
+      ),
+    );
+
+    final minutes = int.tryParse(minutesController.text.trim());
+    final reason = reasonController.text.trim();
+    minutesController.dispose();
+    reasonController.dispose();
+
+    if (confirmed != true || minutes == null || minutes == 0 || reason.isEmpty) {
+      return;
+    }
+
+    final updated = widget.state.adjustJobTime(
+      widget.job,
+      minutes: minutes,
+      reason: reason,
+    );
+    if (!updated || !mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Korekcija vremena je spremljena.')),
+    );
+  }
+
   String get formatted {
+    final seconds = widget.job.workedSeconds();
     final h = seconds ~/ 3600;
     final m = (seconds % 3600) ~/ 60;
     final s = seconds % 60;
-    return [h, m, s].map((value) => value.toString().padLeft(2, "0")).join(":");
+    return [h, m, s]
+        .map((value) => value.toString().padLeft(2, '0'))
+        .join(':');
+  }
+
+  String _durationForEntry(WorkTimeEntry entry) {
+    final seconds = entry.elapsedSeconds();
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final remainder = seconds % 60;
+    if (hours > 0) return '${hours} h ${minutes} min';
+    if (minutes > 0) return '${minutes} min ${remainder} s';
+    return '${remainder} s';
   }
 
   @override
   Widget build(BuildContext context) {
+    final running = widget.job.timerRunning;
+    final entries = widget.job.timeEntries.reversed.toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Evidencija vremena")),
+      appBar: AppBar(title: const Text('Evidencija vremena')),
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
@@ -919,39 +1011,106 @@ class _TimeTrackingScreenState extends State<TimeTrackingScreen> {
               padding: const EdgeInsets.all(22),
               child: Column(
                 children: [
-                  Text(widget.job.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(
+                    widget.job.title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 18),
-                  Text(formatted, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                  Text(running ? "Rad u tijeku" : "Nije pokrenuto", style: TextStyle(color: running ? WorklogColors.success : WorklogColors.muted)),
+                  Text(
+                    formatted,
+                    style: const TextStyle(
+                      fontSize: 46,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    running
+                        ? 'Rad u tijeku'
+                        : widget.job.status == JobStatus.paused
+                            ? 'Mjerenje je pauzirano'
+                            : 'Mjerenje nije aktivno',
+                    style: TextStyle(
+                      color: running
+                          ? WorklogColors.success
+                          : WorklogColors.muted,
+                    ),
+                  ),
                   const SizedBox(height: 22),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      FloatingActionButton.large(heroTag: "timer", onPressed: toggle, child: Icon(running ? Icons.pause_rounded : Icons.play_arrow_rounded)),
+                      FloatingActionButton.large(
+                        heroTag: 'timer',
+                        onPressed: toggle,
+                        child: Icon(
+                          running
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                        ),
+                      ),
                       const SizedBox(width: 18),
                       FloatingActionButton.large(
-                        heroTag: "stop",
+                        heroTag: 'stop',
                         backgroundColor: WorklogColors.danger,
-                        onPressed: () {
-                          timer?.cancel();
-                          setState(() => running = false);
-                          widget.job.minutesWorked += (seconds / 60).ceil();
-                          widget.job.status = JobStatus.active;
-                          widget.state.updateJob();
-                        },
+                        onPressed: running ? stop : null,
                         child: const Icon(Icons.stop_rounded),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: adjustTime,
+                    icon: const Icon(Icons.edit_clock_outlined),
+                    label: const Text('Ručna korekcija'),
                   ),
                 ],
               ),
             ),
           ),
-          const SectionTitle("Danas"),
-          const TimelineEntry(title: "Dolazak na lokaciju", time: "08:00 – 08:15", duration: "15 min", color: WorklogColors.success),
-          const TimelineEntry(title: "Rad na uređaju", time: "08:15 – 10:30", duration: "2 h 15 min", color: WorklogColors.primary),
-          const TimelineEntry(title: "Pauza", time: "10:30 – 10:45", duration: "15 min", color: WorklogColors.muted),
-          const TimelineEntry(title: "Nastavak rada", time: "10:45 – 11:50", duration: "1 h 5 min", color: WorklogColors.success),
+          const SectionTitle('Intervali rada'),
+          if (entries.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Još nema evidentiranih intervala rada.',
+                  style: TextStyle(color: WorklogColors.muted),
+                ),
+              ),
+            )
+          else
+            ...entries.map(
+              (entry) => TimelineEntry(
+                title: entry.isRunning ? 'Rad u tijeku' : 'Radni interval',
+                time:
+                    '${formatClock(entry.startedAt)} – ${entry.endedAt == null ? 'u tijeku' : formatClock(entry.endedAt!)}',
+                duration: _durationForEntry(entry),
+                color: entry.isRunning
+                    ? WorklogColors.success
+                    : WorklogColors.primary,
+              ),
+            ),
+          if (widget.job.manualAdjustmentMinutes != 0) ...[
+            const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: const Icon(
+                  Icons.tune_rounded,
+                  color: WorklogColors.cyan,
+                ),
+                title: Text(
+                  'Ručna korekcija: ${widget.job.manualAdjustmentMinutes > 0 ? '+' : ''}${widget.job.manualAdjustmentMinutes} min',
+                ),
+                subtitle: Text(
+                  widget.job.manualAdjustmentReason.isEmpty
+                      ? 'Razlog nije naveden'
+                      : widget.job.manualAdjustmentReason,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1491,6 +1650,7 @@ class _CompletionFlowScreenState extends State<CompletionFlowScreen> {
 
     setState(() => processing = true);
     try {
+      widget.job.pauseTimer();
       widget.job.status = JobStatus.completed;
       widget.state.updateJob(
         activityTitle: 'Posao završen',
@@ -1756,7 +1916,7 @@ class ReportPreviewStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final minutes = math.max(job.minutesWorked, 270);
+    final minutes = job.totalWorkedMinutes;
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
