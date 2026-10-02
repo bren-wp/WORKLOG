@@ -50,7 +50,7 @@ final class AuthService
                 'INSERT INTO users (id, name, email, password_hash, email_verified_at, created_at, updated_at)
                  VALUES (?, ?, ?, ?, ?, ?, ?)',
             );
-            $insert->execute([$id, $name, $email, $hash, $now, $now, $now]);
+            $insert->execute([$id, $name, $email, $hash, null, $now, $now]);
 
             $session = $this->issueSession([
                 'id' => $id,
