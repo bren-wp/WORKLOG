@@ -71,12 +71,34 @@ def configure_android_activity() -> None:
         path.write_text(text, encoding="utf-8")
 
 
+def configure_android_theme() -> None:
+    roots = [
+        Path("android/app/src/main/res/values/styles.xml"),
+        Path("android/app/src/main/res/values-night/styles.xml"),
+    ]
+    for path in roots:
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        text = re.sub(
+            r'(<style\s+name="LaunchTheme"\s+parent=")[^"]+(")',
+            r'\1Theme.AppCompat.DayNight\2',
+            text,
+            count=1,
+        )
+        path.write_text(text, encoding="utf-8")
+
+
 def configure_android_gradle() -> None:
     kotlin_path = Path("android/app/build.gradle.kts")
     groovy_path = Path("android/app/build.gradle")
 
     if kotlin_path.exists():
         text = kotlin_path.read_text(encoding="utf-8")
+        text = text.replace(
+            "minSdk = flutter.minSdkVersion",
+            "minSdk = 24",
+        )
         if "isCoreLibraryDesugaringEnabled" not in text:
             text = text.replace(
                 "compileOptions {",
@@ -104,6 +126,10 @@ def configure_android_gradle() -> None:
 
     if groovy_path.exists():
         text = groovy_path.read_text(encoding="utf-8")
+        text = text.replace(
+            "minSdkVersion flutter.minSdkVersion",
+            "minSdkVersion 24",
+        )
         if "coreLibraryDesugaringEnabled" not in text:
             text = text.replace(
                 "compileOptions {",
@@ -128,5 +154,6 @@ if __name__ == "__main__":
     configure_ios()
     configure_android_manifest()
     configure_android_activity()
+    configure_android_theme()
     configure_android_gradle()
     print("WORKLOG platforme su konfigurirane.")
