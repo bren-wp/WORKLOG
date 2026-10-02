@@ -98,6 +98,43 @@ void main() {
     expect(job.timeLabel, '14:00 – 15:30');
   });
 
+  test('ConversationMessage JSON zadržava smjer i vrijeme poruke', () {
+    final createdAt = DateTime(2026, 10, 2, 12, 45);
+    final original = ConversationMessage(
+      id: 'message-1',
+      clientId: 'client-1',
+      text: 'Dolazim u 13:00.',
+      mine: true,
+      createdAt: createdAt,
+    );
+
+    final restored = ConversationMessage.fromJson(original.toJson());
+
+    expect(restored.id, 'message-1');
+    expect(restored.clientId, 'client-1');
+    expect(restored.text, 'Dolazim u 13:00.');
+    expect(restored.mine, isTrue);
+    expect(restored.createdAt, createdAt);
+  });
+
+  test('ActivityItem JSON zadržava read status', () {
+    final original = ActivityItem(
+      id: 'activity-1',
+      title: 'Posao završen',
+      subtitle: 'Servis klime',
+      kind: 'job',
+      createdAt: DateTime(2026, 10, 2, 14),
+      read: true,
+    );
+
+    final restored = ActivityItem.fromJson(original.toJson());
+
+    expect(restored.id, 'activity-1');
+    expect(restored.kind, 'job');
+    expect(restored.read, isTrue);
+    expect(restored.createdAt, DateTime(2026, 10, 2, 14));
+  });
+
   test('AppPreferences JSON zapis zadržava sigurnosne postavke', () {
     const preferences = AppPreferences(
       notificationsEnabled: false,
