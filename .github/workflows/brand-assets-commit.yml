@@ -1,0 +1,37 @@
+name: WORKLOG Brand Assets Commit
+
+on:
+  push:
+    branches:
+      - develop/worklog-0.9.0-assets-readme-polish
+
+permissions:
+  contents: write
+
+concurrency:
+  group: worklog-brand-assets-commit
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop/worklog-0.9.0-assets-readme-polish
+          fetch-depth: 0
+      - name: Generiraj brand/store assete
+        run: python3 tool/generate_brand_assets.py
+      - name: Commitaj generirane assete
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add assets/brand/generated store/android/assets store/ios/assets
+          if git diff --cached --quiet; then
+            echo "Generirani asseti su već ažurni."
+            exit 0
+          fi
+          git config user.name "WORKLOG CI"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "assets: spremi generirane WORKLOG store i brand PNG datoteke"
+          git push origin HEAD:develop/worklog-0.9.0-assets-readme-polish
