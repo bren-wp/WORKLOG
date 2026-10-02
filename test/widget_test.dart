@@ -11,20 +11,19 @@ void main() {
     expect(find.text('Preskoči'), findsOneWidget);
   });
 
-  testWidgets(
-    'novi posao bez klijenata prikazuje sigurno prazno stanje',
-    (tester) async {
-      final state = AppState();
+  testWidgets('novi posao bez klijenata prikazuje sigurno prazno stanje', (
+    tester,
+  ) async {
+    final state = AppState();
 
-      await tester.pumpWidget(MaterialApp(home: NewJobScreen(state: state)));
-      await tester.pump();
+    await tester.pumpWidget(MaterialApp(home: NewJobScreen(state: state)));
+    await tester.pump();
 
-      expect(find.textContaining('Nema spremljenih klijenata'), findsOneWidget);
-      final saveButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Spremi posao'),
-      );
-      expect(saveButton.onPressed, isNull);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.textContaining('Nema spremljenih klijenata'), findsOneWidget);
+    final saveButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Spremi posao'),
+    );
+    expect(saveButton.onPressed, isNull);
+    expect(tester.takeException(), isNull);
+  });
 }
