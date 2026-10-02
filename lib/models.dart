@@ -174,7 +174,7 @@ class TeamMember {
 
 class AppPreferences {
   const AppPreferences({
-    this.notificationsEnabled = true,
+    this.notificationsEnabled = false,
     this.autoSaveEnabled = true,
     this.biometricLockEnabled = false,
     this.compactCards = false,
@@ -211,7 +211,7 @@ class AppPreferences {
   factory AppPreferences.fromJson(Map<String, dynamic> json) {
     return AppPreferences(
       notificationsEnabled:
-          json['notificationsEnabled'] as bool? ?? true,
+          json['notificationsEnabled'] as bool? ?? false,
       autoSaveEnabled: json['autoSaveEnabled'] as bool? ?? true,
       biometricLockEnabled:
           json['biometricLockEnabled'] as bool? ?? false,
