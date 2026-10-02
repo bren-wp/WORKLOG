@@ -188,7 +188,9 @@ class AppState extends ChangeNotifier {
         Client? canonical;
         for (final client in clients) {
           if (client.id == job.client.id ||
-              (client.email.isNotEmpty && client.email == job.client.email)) {
+              (client.email.isNotEmpty && client.email == job.client.email) ||
+              (client.name == job.client.name &&
+                  client.phone == job.client.phone)) {
             canonical = client;
             break;
           }
