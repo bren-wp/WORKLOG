@@ -32,6 +32,20 @@ void main() {
     expect(state.clients.any((item) => item.id == client.id), isTrue);
   });
 
+  test('član s aktivnim dodijeljenim poslom ne može se ukloniti', () {
+    final state = AppState();
+    final member = state.teamMembers.firstWhere(
+      (item) => state.jobs.any(
+        (job) =>
+            job.assignedMemberId == item.id &&
+            job.status != JobStatus.completed,
+      ),
+    );
+
+    expect(state.removeTeamMember(member.id), isFalse);
+    expect(state.teamMembers.any((item) => item.id == member.id), isTrue);
+  });
+
   test('klijent bez poslova može se izbrisati', () {
     final state = AppState();
     final client = Client(
