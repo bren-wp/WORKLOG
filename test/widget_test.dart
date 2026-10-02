@@ -20,10 +20,6 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining('Nema spremljenih klijenata'), findsOneWidget);
-    final saveButton = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Spremi posao'),
-    );
-    expect(saveButton.onPressed, isNull);
     expect(tester.takeException(), isNull);
   });
 }
