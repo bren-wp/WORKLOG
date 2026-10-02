@@ -187,13 +187,16 @@ Google Play:
 
 - listing: [store/google-play/hr-HR.md](store/google-play/hr-HR.md)
 - ikona i feature graphic: `store/android/assets/`
-- phone screenshotovi: `store/android/screenshots/phone/`
+- phone screenshotovi 1080×1920 (9:16): `store/android/screenshots/phone/`
 
 Apple App Store:
 
 - listing: [store/app-store/hr-HR.md](store/app-store/hr-HR.md)
 - App Store ikona: `store/ios/assets/`
-- iPhone 6.9" screenshot set: `store/ios/screenshots/iphone-6.9/`
+- iPhone 6.9" screenshot set 1320×2868: `store/ios/screenshots/iphone-6.9/`
+- iPad 13" screenshot set 2064×2752: `store/ios/screenshots/ipad-13/`
+
+Store PNG screenshotovi prolaze automatsku provjeru dimenzija i spremaju se kao 24-bit RGB bez alpha kanala.
 
 ## Privatnost i compliance
 
