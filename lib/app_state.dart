@@ -431,6 +431,22 @@ class AppState extends ChangeNotifier {
         mine: mine,
       ),
     );
+
+    if (!mine) {
+      String clientName = 'Klijent';
+      for (final client in clients) {
+        if (client.id == clientId) {
+          clientName = client.name;
+          break;
+        }
+      }
+      _recordActivity(
+        title: 'Novi odgovor klijenta',
+        subtitle: clientName,
+        kind: 'message',
+      );
+    }
+
     notifyListeners();
     _schedulePersist();
   }
@@ -572,6 +588,9 @@ class AppState extends ChangeNotifier {
         'preferences': preferences.toJson(),
         'clients': clients.map((client) => client.toJson()).toList(),
         'teamMembers': teamMembers.map((member) => member.toJson()).toList(),
+        'messages': messages.map((message) => message.toJson()).toList(),
+        'activityItems':
+            activityItems.map((item) => item.toJson()).toList(),
         'jobs': jobs.map((job) => job.toJson()).toList(),
       });
     } catch (error, stackTrace) {
