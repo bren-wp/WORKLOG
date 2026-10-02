@@ -1,10 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import '../app_state.dart';
 import '../brand.dart';
 import '../models.dart';
 import '../worklog_theme.dart';
+import '../services/device_services.dart';
+import '../services/pdf_report_service.dart';
 
 class NewJobScreen extends StatefulWidget {
   const NewJobScreen({super.key, required this.state});
@@ -132,12 +140,42 @@ class JobDetailScreen extends StatelessWidget {
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
             children: [
-              ActionButton(icon: Icons.phone_rounded, label: "Nazovi", color: WorklogColors.success, onTap: () => _toast(context, "Pozivanje klijenta")),
-              ActionButton(icon: Icons.navigation_rounded, label: "Navigacija", color: WorklogColors.primary, onTap: () => _toast(context, "Otvaranje navigacije")),
+              ActionButton(
+                icon: Icons.phone_rounded,
+                label: "Nazovi",
+                color: WorklogColors.success,
+                onTap: () async {
+                  final opened = await const ExternalActionService().call(job.client.phone);
+                  if (!opened && context.mounted) {
+                    _toast(context, "Poziv nije moguće otvoriti na ovom uređaju.");
+                  }
+                },
+              ),
+              ActionButton(
+                icon: Icons.navigation_rounded,
+                label: "Navigacija",
+                color: WorklogColors.primary,
+                onTap: () async {
+                  final opened = await const ExternalActionService().openNavigation(job.location);
+                  if (!opened && context.mounted) {
+                    _toast(context, "Navigaciju nije moguće otvoriti.");
+                  }
+                },
+              ),
               ActionButton(icon: Icons.timer_outlined, label: "Evidencija vremena", color: WorklogColors.cyan, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TimeTrackingScreen(state: state, job: job)))),
               ActionButton(icon: Icons.inventory_2_outlined, label: "Materijal", color: WorklogColors.violet, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MaterialsScreen(state: state, job: job)))),
               ActionButton(icon: Icons.note_alt_outlined, label: "Bilješke", color: WorklogColors.warning, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotesScreen(state: state, job: job)))),
-              ActionButton(icon: Icons.photo_camera_outlined, label: "Fotografije", color: WorklogColors.primary, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BeforeAfterScreen(job: job)))),
+              ActionButton(
+                icon: Icons.photo_camera_outlined,
+                label: "Fotografije",
+                color: WorklogColors.primary,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BeforeAfterScreen(state: state, job: job),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -475,42 +513,257 @@ class _CheckRowState extends State<CheckRow> {
 }
 
 class BeforeAfterScreen extends StatelessWidget {
-  const BeforeAfterScreen({super.key, required this.job});
+  const BeforeAfterScreen({
+    super.key,
+    required this.state,
+    required this.job,
+  });
+
+  final AppState state;
   final WorkJob job;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Fotografije")),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
-        children: [
-          const SectionTitle("Fotografije prije"),
-          const Row(
+      body: JobPhotoManager(state: state, job: job),
+    );
+  }
+}
+
+class JobPhotoManager extends StatefulWidget {
+  const JobPhotoManager({
+    super.key,
+    required this.state,
+    required this.job,
+    this.compact = false,
+  });
+
+  final AppState state;
+  final WorkJob job;
+  final bool compact;
+
+  @override
+  State<JobPhotoManager> createState() => _JobPhotoManagerState();
+}
+
+class _JobPhotoManagerState extends State<JobPhotoManager> {
+  final DeviceMediaService _media = DeviceMediaService();
+  bool busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_recoverLostImages());
+  }
+
+  Future<void> _recoverLostImages() async {
+    final storage = widget.state.storage;
+    if (storage == null) return;
+    final paths = await _media.recoverLostImages(
+      storage: storage,
+      job: widget.job,
+    );
+    if (paths.isEmpty || !mounted) return;
+    setState(() => widget.job.beforePhotoPaths.addAll(paths));
+    widget.state.updateJob();
+  }
+
+  Future<void> _pick(bool before, ImageSource source) async {
+    final storage = widget.state.storage;
+    if (storage == null || busy) return;
+
+    setState(() => busy = true);
+    try {
+      final path = await _media.pickJobPhoto(
+        storage: storage,
+        job: widget.job,
+        before: before,
+        source: source,
+      );
+      if (path == null || !mounted) return;
+      setState(() {
+        final list = before
+            ? widget.job.beforePhotoPaths
+            : widget.job.afterPhotoPaths;
+        list.add(path);
+      });
+      widget.state.updateJob();
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _chooseSource(bool before) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Wrap(
             children: [
-              Expanded(child: PhotoPlaceholder(icon: Icons.plumbing_rounded, label: "Prije")),
-              SizedBox(width: 10),
-              Expanded(child: PhotoPlaceholder(icon: Icons.construction_rounded, label: "Prije")),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text("Kamera"),
+                subtitle: const Text("Snimi novu fotografiju na terenu."),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text("Galerija"),
+                subtitle: const Text("Odaberi postojeću fotografiju."),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.add_a_photo_outlined), label: const Text("Dodaj fotografiju")),
-          const SectionTitle("Fotografije poslije"),
-          const Row(
-            children: [
-              Expanded(child: PhotoPlaceholder(icon: Icons.bathroom_rounded, label: "Poslije")),
-              SizedBox(width: 10),
-              Expanded(child: PhotoPlaceholder(icon: Icons.check_circle_rounded, label: "Poslije")),
-            ],
-          ),
-        ],
+        ),
       ),
+    );
+    if (source != null && mounted) {
+      await _pick(before, source);
+    }
+  }
+
+  void _remove(bool before, String path) {
+    setState(() {
+      final list =
+          before ? widget.job.beforePhotoPaths : widget.job.afterPhotoPaths;
+      list.remove(path);
+    });
+    widget.state.updateJob();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.all(widget.compact ? 14 : 18),
+      shrinkWrap: widget.compact,
+      physics: widget.compact
+          ? const NeverScrollableScrollPhysics()
+          : const AlwaysScrollableScrollPhysics(),
+      children: [
+        PhotoSection(
+          title: "Fotografije prije",
+          subtitle: "Dokumentiraj stanje prije početka radova.",
+          paths: widget.job.beforePhotoPaths,
+          onAdd: () => _chooseSource(true),
+          onRemove: (path) => _remove(true, path),
+          busy: busy,
+        ),
+        const SizedBox(height: 18),
+        PhotoSection(
+          title: "Fotografije poslije",
+          subtitle: "Dodaj dokaz završenih radova.",
+          paths: widget.job.afterPhotoPaths,
+          onAdd: () => _chooseSource(false),
+          onRemove: (path) => _remove(false, path),
+          busy: busy,
+        ),
+      ],
+    );
+  }
+}
+
+class PhotoSection extends StatelessWidget {
+  const PhotoSection({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.paths,
+    required this.onAdd,
+    required this.onRemove,
+    required this.busy,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<String> paths;
+  final VoidCallback onAdd;
+  final ValueChanged<String> onRemove;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text(subtitle, style: const TextStyle(color: WorklogColors.muted)),
+        const SizedBox(height: 12),
+        if (paths.isEmpty)
+          const PhotoPlaceholder(
+            icon: Icons.add_a_photo_outlined,
+            label: "Još nema fotografija",
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: paths.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1.15,
+            ),
+            itemBuilder: (context, index) {
+              final path = paths[index];
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.file(
+                      File(path),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: WorklogColors.surface2,
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          color: WorklogColors.muted,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: IconButton.filledTonal(
+                        onPressed: () => onRemove(path),
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: busy ? null : onAdd,
+            icon: busy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_a_photo_outlined),
+            label: Text(busy ? "Spremanje..." : "Dodaj fotografiju"),
+          ),
+        ),
+      ],
     );
   }
 }
 
 class PhotoPlaceholder extends StatelessWidget {
-  const PhotoPlaceholder({super.key, required this.icon, required this.label});
+  const PhotoPlaceholder({
+    super.key,
+    required this.icon,
+    required this.label,
+  });
+
   final IconData icon;
   final String label;
 
@@ -519,7 +772,9 @@ class PhotoPlaceholder extends StatelessWidget {
     return Container(
       height: 130,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF163B5F), Color(0xFF0A192B)]),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF163B5F), Color(0xFF0A192B)],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: WorklogColors.border),
       ),
@@ -531,8 +786,14 @@ class PhotoPlaceholder extends StatelessWidget {
             bottom: 8,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
-              child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ],
