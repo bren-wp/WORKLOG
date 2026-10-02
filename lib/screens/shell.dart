@@ -704,7 +704,9 @@ class MoreScreen extends StatelessWidget {
         ),
         _MoreTile(
           icon: Icons.notifications_none_rounded,
-          label: "Obavijesti",
+          label: state.unreadActivityCount == 0
+              ? "Obavijesti"
+              : "Obavijesti (${state.unreadActivityCount})",
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
