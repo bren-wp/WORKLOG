@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:cross_file/cross_file.dart';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -378,7 +377,8 @@ class PdfReportService {
     if (path == null || path.isEmpty) return null;
     try {
       final file = File(path);
-      return await file.exists() ? file.readAsBytes() : null;
+      if (!await file.exists()) return null;
+      return await file.readAsBytes();
     } catch (_) {
       return null;
     }
