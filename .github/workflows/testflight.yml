@@ -51,6 +51,17 @@ jobs:
             exit 1
           fi
 
+      - name: Provjeri Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          XCODE_MAJOR="$(xcodebuild -version | awk '/Xcode/ {split($2, parts, "."); print parts[1]}')"
+          if [ -z "$XCODE_MAJOR" ] || [ "$XCODE_MAJOR" -lt 26 ]; then
+            echo "::error::Za App Store Connect upload potreban je Xcode 26 ili noviji."
+            exit 1
+          fi
+
       - name: Generiraj i konfiguriraj iOS platformu
         shell: bash
         run: |
@@ -58,6 +69,25 @@ jobs:
           flutter create --org com.brendigo --project-name worklog --platforms android,ios .
           python3 tool/configure_platforms.py
           flutter pub get
+
+      - name: Odredi jedinstveni iOS build broj
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_BUILD="$(awk -F+ '/^version:/ {gsub(/[[:space:]]/, "", $2); print $2}' pubspec.yaml)"
+          if ! [[ "$BASE_BUILD" =~ ^[0-9]+$ ]]; then
+            echo "::error::Build broj u pubspec.yaml mora biti cijeli broj."
+            exit 1
+          fi
+
+          IOS_BUILD_NUMBER=$((BASE_BUILD + GITHUB_RUN_NUMBER))
+          if [ "$IOS_BUILD_NUMBER" -gt 9999 ]; then
+            echo "::error::Izračunati iOS build broj prelazi podržani raspon."
+            exit 1
+          fi
+
+          echo "IOS_BUILD_NUMBER=$IOS_BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "WORKLOG iOS build broj: $IOS_BUILD_NUMBER"
 
       - name: Pripremi App Store Connect API ključ
         shell: bash
@@ -74,14 +104,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          flutter build ios             --release             --no-codesign             --build-number "$GITHUB_RUN_NUMBER"
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --build-number "$IOS_BUILD_NUMBER"
 
       - name: Arhiviraj potpisani iOS build
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build/ios/archive
-          xcodebuild             -workspace ios/Runner.xcworkspace             -scheme Runner             -configuration Release             -destination 'generic/platform=iOS'             -archivePath build/ios/archive/Runner.xcarchive             -allowProvisioningUpdates             -authenticationKeyPath "$ASC_KEY_PATH"             -authenticationKeyID "$APPSTORE_API_KEY_ID"             -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"             DEVELOPMENT_TEAM="$APPSTORE_TEAM_ID"             CODE_SIGN_STYLE=Automatic             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"             archive
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPSTORE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
+            archive
 
       - name: Generiraj ExportOptions.plist
         shell: bash
@@ -117,7 +163,15 @@ jobs:
           set -euo pipefail
           rm -rf build/ios/testflight
           mkdir -p build/ios/testflight
-          xcodebuild             -exportArchive             -archivePath build/ios/archive/Runner.xcarchive             -exportPath build/ios/testflight             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"             -allowProvisioningUpdates             -authenticationKeyPath "$ASC_KEY_PATH"             -authenticationKeyID "$APPSTORE_API_KEY_ID"             -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/testflight \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
 
       - name: Provjeri potpis i IPA
         id: ipa
