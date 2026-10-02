@@ -6,7 +6,7 @@
 
 ## Status
 
-Aktivni razvoj: **0.1.0**. Projekt je izgrađen u Flutteru s jednim kodom za Android i iOS. Cijelo korisničko sučelje je na hrvatskom i vizualno prati odobreni WORKLOG branding.
+Aktivni razvoj: **0.4.0**. Projekt je izgrađen u Flutteru s jednim kodom za Android i iOS. Cijelo korisničko sučelje je na hrvatskom i vizualno prati odobreni WORKLOG branding.
 
 ## Pokretanje
 
@@ -21,6 +21,7 @@ Ako ste na Windowsu, pokrenite ekvivalent:
 
 ```powershell
 flutter create --org com.brendigo --project-name worklog --platforms android,ios .
+python tool/configure_platforms.py
 flutter pub get
 flutter run
 ```
@@ -45,7 +46,16 @@ flutter run
 - pregled zapisnika
 - završetak posla
 - slanje izvještaja
-- Izvještaji
+- Izvještaji i stvarni PDF zapisnici
+- kamera i galerija
+- lokalno spremanje potpisa
+- sistemsko dijeljenje PDF-a
+- upravljanje profilom tvrtke
+- upravljanje terenskim timom
+- dodjela poslova članovima tima
+- lokalne Android/iOS obavijesti
+- zaključavanje aplikacije biometrijom ili šifrom uređaja
+- izvoz i brisanje lokalnih podataka
 
 Detalji proizvoda: [docs/PRODUCT.md](docs/PRODUCT.md)  
 Vizualni identitet: [docs/BRAND.md](docs/BRAND.md)

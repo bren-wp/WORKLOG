@@ -7,6 +7,8 @@ import 'package:share_plus/share_plus.dart';
 import '../app_state.dart';
 import '../models.dart';
 import '../services/device_services.dart';
+import '../services/notification_service.dart';
+import '../services/security_service.dart';
 import '../worklog_theme.dart';
 
 class ClientEditorScreen extends StatefulWidget {
@@ -488,7 +490,17 @@ class _TeamMemberEditorScreenState extends State<TeamMemberEditorScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    widget.state.removeTeamMember(current.id);
+    final removed = widget.state.removeTeamMember(current.id);
+    if (!removed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Člana nije moguće ukloniti dok ima aktivne dodijeljene poslove.',
+          ),
+        ),
+      );
+      return;
+    }
     Navigator.pop(context);
   }
 
@@ -557,18 +569,142 @@ class _TeamMemberEditorScreenState extends State<TeamMemberEditorScreen> {
   }
 }
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.state});
+
   final AppState state;
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final LocalSecurityService security = LocalSecurityService();
+  final WorklogNotificationService notifications =
+      WorklogNotificationService.instance;
+
+  bool notificationBusy = false;
+  bool securityBusy = false;
+
+  Future<void> toggleNotifications(bool enabled) async {
+    if (notificationBusy) return;
+
+    if (!enabled) {
+      widget.state.updatePreferences(
+        widget.state.preferences.copyWith(notificationsEnabled: false),
+      );
+      await notifications.cancelAll();
+      return;
+    }
+
+    setState(() => notificationBusy = true);
+    try {
+      final granted = await notifications.requestPermission();
+      if (!mounted) return;
+
+      widget.state.updatePreferences(
+        widget.state.preferences.copyWith(
+          notificationsEnabled: granted,
+        ),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            granted
+                ? 'WORKLOG obavijesti su uključene.'
+                : 'Dozvola za obavijesti nije odobrena.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      widget.state.updatePreferences(
+        widget.state.preferences.copyWith(notificationsEnabled: false),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Obavijesti nije moguće uključiti: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => notificationBusy = false);
+    }
+  }
+
+  Future<void> sendTestNotification() async {
+    if (notificationBusy) return;
+    setState(() => notificationBusy = true);
+    try {
+      await notifications.showTestNotification();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Testna WORKLOG obavijest je poslana.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Testna obavijest nije uspjela: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => notificationBusy = false);
+    }
+  }
+
+  Future<void> toggleSecurity(bool enabled) async {
+    if (securityBusy) return;
+
+    if (!enabled) {
+      widget.state.updatePreferences(
+        widget.state.preferences.copyWith(biometricLockEnabled: false),
+      );
+      return;
+    }
+
+    setState(() => securityBusy = true);
+    try {
+      final result = await security.authenticate(
+        reason:
+            'Potvrdi identitet za uključivanje zaključavanja WORKLOG aplikacije.',
+      );
+      if (!mounted) return;
+
+      if (result.success) {
+        widget.state.updatePreferences(
+          widget.state.preferences.copyWith(biometricLockEnabled: true),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Zaključavanje aplikacije je uključeno.',
+            ),
+          ),
+        );
+      } else {
+        widget.state.updatePreferences(
+          widget.state.preferences.copyWith(biometricLockEnabled: false),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.message ?? 'Autentikacija nije potvrđena.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => securityBusy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Postavke')),
       body: AnimatedBuilder(
-        animation: state,
+        animation: widget.state,
         builder: (context, _) {
-          final prefs = state.preferences;
+          final prefs = widget.state.preferences;
           return ListView(
             padding: const EdgeInsets.all(18),
             children: [
@@ -582,18 +718,39 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     SwitchListTile(
                       value: prefs.notificationsEnabled,
-                      onChanged: (value) => state.updatePreferences(
-                        prefs.copyWith(notificationsEnabled: value),
-                      ),
+                      onChanged:
+                          notificationBusy ? null : toggleNotifications,
+                      secondary: notificationBusy
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.notifications_active_outlined),
                       title: const Text('Obavijesti'),
-                      subtitle: const Text(
-                        'Prikazuj WORKLOG podsjetnike i obavijesti.',
+                      subtitle: Text(
+                        prefs.notificationsEnabled
+                            ? 'Dozvola je odobrena i WORKLOG može prikazivati lokalne obavijesti.'
+                            : 'Uključi i odobri sistemsku dozvolu za WORKLOG obavijesti.',
                       ),
                     ),
+                    if (prefs.notificationsEnabled) ...[
+                      const Divider(height: 1),
+                      ListTile(
+                        onTap: notificationBusy
+                            ? null
+                            : sendTestNotification,
+                        leading: const Icon(Icons.notification_add_outlined),
+                        title: const Text('Pošalji testnu obavijest'),
+                        subtitle: const Text(
+                          'Provjeri prikazuje li uređaj WORKLOG obavijesti.',
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                      ),
+                    ],
                     const Divider(height: 1),
                     SwitchListTile(
                       value: prefs.autoSaveEnabled,
-                      onChanged: (value) => state.updatePreferences(
+                      onChanged: (value) => widget.state.updatePreferences(
                         prefs.copyWith(autoSaveEnabled: value),
                       ),
                       title: const Text('Automatsko spremanje'),
@@ -604,7 +761,7 @@ class SettingsScreen extends StatelessWidget {
                     const Divider(height: 1),
                     SwitchListTile(
                       value: prefs.compactCards,
-                      onChanged: (value) => state.updatePreferences(
+                      onChanged: (value) => widget.state.updatePreferences(
                         prefs.copyWith(compactCards: value),
                       ),
                       title: const Text('Kompaktne kartice'),
@@ -624,13 +781,28 @@ class SettingsScreen extends StatelessWidget {
               Card(
                 child: SwitchListTile(
                   value: prefs.biometricLockEnabled,
-                  onChanged: (value) => state.updatePreferences(
-                    prefs.copyWith(biometricLockEnabled: value),
-                  ),
+                  onChanged: securityBusy ? null : toggleSecurity,
+                  secondary: securityBusy
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.fingerprint_rounded),
                   title: const Text('Zaključavanje aplikacije'),
-                  subtitle: const Text(
-                    'Postavka je spremljena; biometrijska provjera bit će povezana s platformskim identitetom.',
+                  subtitle: Text(
+                    prefs.biometricLockEnabled
+                        ? 'WORKLOG se zaključava nakon prijave i povratka iz pozadine.'
+                        : 'Zaštiti aplikaciju biometrijom ili sigurnosnom šifrom uređaja.',
                   ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Autentikacija se odvija lokalno na uređaju. WORKLOG ne dobiva biometrijske podatke.',
+                style: TextStyle(
+                  color: WorklogColors.muted,
+                  fontSize: 12,
+                  height: 1.4,
                 ),
               ),
             ],

@@ -95,6 +95,8 @@ class AppState extends ChangeNotifier {
         status: JobStatus.active,
         description: "Redovni servis, čišćenje filtera i provjera rada.",
         minutesWorked: 135,
+        assignedMemberId: 'team-tehnicar',
+        assignedMemberName: 'Ivan Barić',
         materials: const [
           MaterialItem(
             name: "Sredstvo za čišćenje",
@@ -113,6 +115,8 @@ class AppState extends ChangeNotifier {
         dateLabel: "12. ožujka 2026.",
         timeLabel: "11:30 – 13:00",
         status: JobStatus.planned,
+        assignedMemberId: 'team-owner',
+        assignedMemberName: 'Marko Horvat',
       ),
       WorkJob(
         id: 'demo-rasvjeta',
@@ -122,6 +126,8 @@ class AppState extends ChangeNotifier {
         dateLabel: "13. ožujka 2026.",
         timeLabel: "09:00 – 12:00",
         status: JobStatus.planned,
+        assignedMemberId: 'team-tehnicar',
+        assignedMemberName: 'Ivan Barić',
       ),
       WorkJob(
         id: 'demo-instalacije',
@@ -144,6 +150,8 @@ class AppState extends ChangeNotifier {
       await _persist();
       return;
     }
+
+    final schemaVersion = (data['schemaVersion'] as num?)?.toInt() ?? 1;
 
     onboardingComplete = data['onboardingComplete'] as bool? ?? false;
     profileReady = data['profileReady'] as bool? ?? false;
@@ -174,6 +182,13 @@ class AppState extends ChangeNotifier {
     if (preferencesRaw is Map) {
       preferences = AppPreferences.fromJson(
         Map<String, dynamic>.from(preferencesRaw),
+      );
+    }
+
+    if (schemaVersion < 4) {
+      preferences = preferences.copyWith(
+        notificationsEnabled: false,
+        biometricLockEnabled: false,
       );
     }
 
@@ -293,10 +308,26 @@ class AppState extends ChangeNotifier {
     _schedulePersist();
   }
 
-  void removeTeamMember(String memberId) {
+  bool removeTeamMember(String memberId) {
+    final hasOpenJobs = jobs.any(
+      (job) =>
+          job.assignedMemberId == memberId &&
+          job.status != JobStatus.completed,
+    );
+    if (hasOpenJobs) return false;
+
     teamMembers.removeWhere((member) => member.id == memberId);
     notifyListeners();
     _schedulePersist();
+    return true;
+  }
+
+  TeamMember? teamMemberById(String? memberId) {
+    if (memberId == null || memberId.isEmpty) return null;
+    for (final member in teamMembers) {
+      if (member.id == memberId) return member;
+    }
+    return null;
   }
 
   void updatePreferences(AppPreferences value) {
@@ -306,7 +337,7 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> exportSnapshot() => {
-        'schemaVersion': 3,
+        'schemaVersion': 4,
         'companyProfile': companyProfile.toJson(),
         'preferences': preferences.toJson(),
         'clients': clients.map((client) => client.toJson()).toList(),
@@ -351,7 +382,7 @@ class AppState extends ChangeNotifier {
     if (service == null) return;
     try {
       await service.writeState({
-        'schemaVersion': 3,
+        'schemaVersion': 4,
         'onboardingComplete': onboardingComplete,
         'profileReady': profileReady,
         'companyProfile': companyProfile.toJson(),

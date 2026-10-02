@@ -4,11 +4,25 @@
 
 WORKLOG je Android i iOS aplikacija za obrtnike, servisere, montažere i terenske timove. Cilj je da jedan posao ima jedan pouzdan zapis: klijent, lokacija, termin, vrijeme rada, materijal, fotografije, napomene, potpis i završni izvještaj.
 
-## Verzija 0.3.0
+## Verzija 0.4.0
 
-Aplikacija više nije samo UI prototip. Uz mobilne integracije i trajnu lokalnu pohranu, 0.3.0 uvodi stvarno upravljanje klijentima, profilom tvrtke, terenskim timom, postavkama te izvozom i brisanjem lokalnih podataka.
+Aplikacija više nije samo UI prototip. Verzija 0.4.0 dodaje stvarno lokalno zaključavanje aplikacije, sistemske Android/iOS obavijesti i dodjelu poslova članovima terenskog tima, uz sve funkcije iz 0.2.0 i 0.3.0.
 
-### Novo u 0.3.0
+### Novo u 0.4.0
+
+- lokalna autentikacija preko biometrije ili sigurnosne šifre uređaja
+- automatsko zaključavanje WORKLOG-a nakon prijave i povratka iz pozadine
+- sigurna migracija starih postavki: zaštita se ne uključuje bez nove potvrde korisnika
+- lokalne Android/iOS obavijesti uz eksplicitno traženje sistemske dozvole
+- testna obavijest iz Postavki
+- lokalna obavijest pri pokretanju planiranog terenskog posla
+- dodjela novog posla aktivnom članu terenskog tima
+- prikaz dodijeljenog tehničara na kartici, kalendaru i detalju posla
+- dodijeljeni tehničar u PDF zapisniku
+- zaštita od uklanjanja člana tima koji ima aktivne dodijeljene poslove
+- Android FragmentActivity, USE_BIOMETRIC, AppCompat LaunchTheme i desugaring konfigurirani kroz reproduktibilni build alat
+
+### Iz 0.3.0
 
 - dodavanje i uređivanje klijenata
 - sigurno brisanje klijenta samo kada nema povezanih poslova
@@ -49,8 +63,8 @@ Aplikacija više nije samo UI prototip. Uz mobilne integracije i trajnu lokalnu 
 - fotografije i potpis u PDF zapisniku kada su dostupni
 - sustavno dijeljenje PDF-a putem instaliranih aplikacija
 - trajno spremanje poslova, materijala, bilješki, statusa i putanja dokumenata
-- obavijesti i popis izvještaja
-- iOS opisi dozvola za kameru i fototeku
+- lokalne obavijesti i popis izvještaja
+- iOS opisi dozvola za kameru, fototeku i Face ID
 - WORKLOG naziv aplikacije u generiranim Android/iOS projektima
 
 ## Lokalna pohrana

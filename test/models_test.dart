@@ -28,6 +28,8 @@ void main() {
       signaturePath: '/tmp/potpis.png',
       reportPath: '/tmp/zapisnik.pdf',
       reportSent: true,
+      assignedMemberId: 'team-1',
+      assignedMemberName: 'Ivan Barić',
     );
 
     final restored = WorkJob.fromJson(original.toJson());
@@ -44,6 +46,8 @@ void main() {
     expect(restored.reportPath, '/tmp/zapisnik.pdf');
     expect(restored.reportSent, isTrue);
     expect(restored.client.id, client.id);
+    expect(restored.assignedMemberId, 'team-1');
+    expect(restored.assignedMemberName, 'Ivan Barić');
   });
 
   test('AppPreferences JSON zapis zadržava sigurnosne postavke', () {

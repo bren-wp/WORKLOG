@@ -64,6 +64,10 @@ class PdfReportService {
               _row('Vrijeme', job.timeLabel),
               _row('Status', job.statusLabel),
               _row('Prioritet', job.priority),
+              _row(
+                'Terenski tehnicar',
+                job.assignedMemberName ?? 'Nije dodijeljeno',
+              ),
             ],
           ),
           if (job.description.trim().isNotEmpty)
