@@ -128,10 +128,8 @@ try {
     Http::json(['error' => 'Ruta ne postoji.'], 404);
 } catch (InvalidArgumentException $error) {
     Http::json(['error' => $error->getMessage()], 422);
-} catch (DomainException $error) {
-    Http::json(['error' => $error->getMessage()], 401);
-} catch (RuntimeException $error) {
-    Http::json(['error' => $error->getMessage()], 429);
+} catch (AuthHttpException $error) {
+    Http::json(['error' => $error->getMessage()], $error->status);
 } catch (Throwable $error) {
     error_log('WORKLOG backend error: ' . $error->getMessage());
     Http::json(['error' => 'Interna greška poslužitelja.'], 500);
