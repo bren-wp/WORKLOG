@@ -14,6 +14,8 @@ class AppState extends ChangeNotifier {
   final List<Client> clients = [];
   final List<WorkJob> jobs = [];
   final List<TeamMember> teamMembers = [];
+  final List<ConversationMessage> messages = [];
+  final List<ActivityItem> activityItems = [];
 
   CompanyProfile companyProfile = const CompanyProfile();
   AppPreferences preferences = const AppPreferences();
@@ -177,6 +179,24 @@ class AppState extends ChangeNotifier {
         .map((value) => TeamMember.fromJson(Map<String, dynamic>.from(value)))
         .toList();
 
+    final savedMessages = (data['messages'] as List? ?? const [])
+        .whereType<Map>()
+        .map(
+          (value) => ConversationMessage.fromJson(
+            Map<String, dynamic>.from(value),
+          ),
+        )
+        .toList();
+
+    final savedActivity = (data['activityItems'] as List? ?? const [])
+        .whereType<Map>()
+        .map(
+          (value) => ActivityItem.fromJson(
+            Map<String, dynamic>.from(value),
+          ),
+        )
+        .toList();
+
     final companyRaw = data['companyProfile'];
     if (companyRaw is Map) {
       companyProfile = CompanyProfile.fromJson(
@@ -230,6 +250,15 @@ class AppState extends ChangeNotifier {
         ..clear()
         ..addAll(savedTeam);
     }
+
+    messages
+      ..clear()
+      ..addAll(savedMessages);
+
+    activityItems
+      ..clear()
+      ..addAll(savedActivity)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   void setTab(int value) {
@@ -256,17 +285,38 @@ class AppState extends ChangeNotifier {
 
   void addJob(WorkJob job) {
     jobs.insert(0, job);
+    _recordActivity(
+      title: 'Novi posao',
+      subtitle: '${job.title} • ${job.client.name}',
+      kind: 'job',
+    );
     notifyListeners();
     _schedulePersist();
   }
 
-  void updateJob() {
+  void updateJob({
+    String? activityTitle,
+    String? activitySubtitle,
+    String kind = 'job',
+  }) {
+    if (activityTitle != null && activityTitle.trim().isNotEmpty) {
+      _recordActivity(
+        title: activityTitle.trim(),
+        subtitle: activitySubtitle?.trim() ?? '',
+        kind: kind,
+      );
+    }
     notifyListeners();
     _schedulePersist();
   }
 
   void addClient(Client client) {
     clients.insert(0, client);
+    _recordActivity(
+      title: 'Novi klijent',
+      subtitle: client.name,
+      kind: 'client',
+    );
     notifyListeners();
     _schedulePersist();
   }
@@ -287,7 +337,24 @@ class AppState extends ChangeNotifier {
   bool removeClient(String clientId) {
     final hasJobs = jobs.any((job) => job.client.id == clientId);
     if (hasJobs) return false;
+
+    String? clientName;
+    for (final client in clients) {
+      if (client.id == clientId) {
+        clientName = client.name;
+        break;
+      }
+    }
+
     clients.removeWhere((client) => client.id == clientId);
+    messages.removeWhere((message) => message.clientId == clientId);
+    if (clientName != null) {
+      _recordActivity(
+        title: 'Klijent uklonjen',
+        subtitle: clientName,
+        kind: 'client',
+      );
+    }
     notifyListeners();
     _schedulePersist();
     return true;
@@ -302,6 +369,11 @@ class AppState extends ChangeNotifier {
 
   void addTeamMember(TeamMember member) {
     teamMembers.insert(0, member);
+    _recordActivity(
+      title: 'Novi član tima',
+      subtitle: '${member.name} • ${member.role}',
+      kind: 'team',
+    );
     notifyListeners();
     _schedulePersist();
   }
@@ -322,10 +394,110 @@ class AppState extends ChangeNotifier {
     );
     if (hasOpenJobs) return false;
 
-    teamMembers.removeWhere((member) => member.id == memberId);
+    final member = teamMemberById(memberId);
+    teamMembers.removeWhere((item) => item.id == memberId);
+    if (member != null) {
+      _recordActivity(
+        title: 'Član tima uklonjen',
+        subtitle: member.name,
+        kind: 'team',
+      );
+    }
     notifyListeners();
     _schedulePersist();
     return true;
+  }
+
+  List<ConversationMessage> messagesForClient(String clientId) {
+    final result = messages
+        .where((message) => message.clientId == clientId)
+        .toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return result;
+  }
+
+  void addMessage({
+    required String clientId,
+    required String text,
+    required bool mine,
+  }) {
+    final clean = text.trim();
+    if (clean.isEmpty) return;
+
+    messages.add(
+      ConversationMessage(
+        clientId: clientId,
+        text: clean,
+        mine: mine,
+      ),
+    );
+    notifyListeners();
+    _schedulePersist();
+  }
+
+  int get unreadActivityCount =>
+      activityItems.where((item) => !item.read).length;
+
+  void markActivityRead(String id) {
+    for (final item in activityItems) {
+      if (item.id == id) {
+        item.read = true;
+        break;
+      }
+    }
+    notifyListeners();
+    _schedulePersist();
+  }
+
+  void markAllActivityRead() {
+    var changed = false;
+    for (final item in activityItems) {
+      if (!item.read) {
+        item.read = true;
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    notifyListeners();
+    _schedulePersist();
+  }
+
+  void clearReadActivity() {
+    activityItems.removeWhere((item) => item.read);
+    notifyListeners();
+    _schedulePersist();
+  }
+
+  void recordActivity({
+    required String title,
+    required String subtitle,
+    required String kind,
+  }) {
+    _recordActivity(
+      title: title,
+      subtitle: subtitle,
+      kind: kind,
+    );
+    notifyListeners();
+    _schedulePersist();
+  }
+
+  void _recordActivity({
+    required String title,
+    required String subtitle,
+    required String kind,
+  }) {
+    activityItems.insert(
+      0,
+      ActivityItem(
+        title: title,
+        subtitle: subtitle,
+        kind: kind,
+      ),
+    );
+    if (activityItems.length > 200) {
+      activityItems.removeRange(200, activityItems.length);
+    }
   }
 
   TeamMember? teamMemberById(String? memberId) {
@@ -343,11 +515,14 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> exportSnapshot() => {
-        'schemaVersion': 5,
+        'schemaVersion': 6,
         'companyProfile': companyProfile.toJson(),
         'preferences': preferences.toJson(),
         'clients': clients.map((client) => client.toJson()).toList(),
         'teamMembers': teamMembers.map((member) => member.toJson()).toList(),
+        'messages': messages.map((message) => message.toJson()).toList(),
+        'activityItems':
+            activityItems.map((item) => item.toJson()).toList(),
         'jobs': jobs.map((job) => job.toJson()).toList(),
       };
 
@@ -356,6 +531,8 @@ class AppState extends ChangeNotifier {
     clients.clear();
     jobs.clear();
     teamMembers.clear();
+    messages.clear();
+    activityItems.clear();
     companyProfile = const CompanyProfile();
     preferences = const AppPreferences();
     onboardingComplete = false;
@@ -388,7 +565,7 @@ class AppState extends ChangeNotifier {
     if (service == null) return;
     try {
       await service.writeState({
-        'schemaVersion': 5,
+        'schemaVersion': 6,
         'onboardingComplete': onboardingComplete,
         'profileReady': profileReady,
         'companyProfile': companyProfile.toJson(),
