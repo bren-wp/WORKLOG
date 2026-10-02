@@ -24,6 +24,12 @@ class AppState extends ChangeNotifier {
   bool profileReady = false;
 
   void _seed() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    DateTime at(int dayOffset, int hour, int minute) =>
+        today.add(Duration(days: dayOffset, hours: hour, minutes: minute));
+
     final ivica = Client(
       id: 'client-ivica',
       name: "Ivica Horvat",
@@ -90,8 +96,8 @@ class AppState extends ChangeNotifier {
         title: "Servis klima uređaja",
         client: ivica,
         location: "Zagreb, Trešnjevka",
-        dateLabel: "12. ožujka 2026.",
-        timeLabel: "08:00 – 12:00",
+        scheduledStart: at(0, 8, 0),
+        scheduledEnd: at(0, 12, 0),
         status: JobStatus.active,
         description: "Redovni servis, čišćenje filtera i provjera rada.",
         minutesWorked: 135,
@@ -112,8 +118,8 @@ class AppState extends ChangeNotifier {
         title: "Servis bojlera",
         client: marija,
         location: "Zagreb, Maksimir",
-        dateLabel: "12. ožujka 2026.",
-        timeLabel: "11:30 – 13:00",
+        scheduledStart: at(0, 13, 30),
+        scheduledEnd: at(0, 15, 0),
         status: JobStatus.planned,
         assignedMemberId: 'team-owner',
         assignedMemberName: 'Marko Horvat',
@@ -123,8 +129,8 @@ class AppState extends ChangeNotifier {
         title: "Ugradnja rasvjete",
         client: korzo,
         location: "Zagreb, Centar",
-        dateLabel: "13. ožujka 2026.",
-        timeLabel: "09:00 – 12:00",
+        scheduledStart: at(1, 9, 0),
+        scheduledEnd: at(1, 12, 0),
         status: JobStatus.planned,
         assignedMemberId: 'team-tehnicar',
         assignedMemberName: 'Ivan Barić',
@@ -134,8 +140,8 @@ class AppState extends ChangeNotifier {
         title: "Sanacija instalacija",
         client: goran,
         location: "Velika Gorica",
-        dateLabel: "10. ožujka 2026.",
-        timeLabel: "14:30 – 16:00",
+        scheduledStart: at(-1, 14, 30),
+        scheduledEnd: at(-1, 16, 0),
         status: JobStatus.completed,
       ),
     ]);
@@ -337,7 +343,7 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> exportSnapshot() => {
-        'schemaVersion': 4,
+        'schemaVersion': 5,
         'companyProfile': companyProfile.toJson(),
         'preferences': preferences.toJson(),
         'clients': clients.map((client) => client.toJson()).toList(),
@@ -382,7 +388,7 @@ class AppState extends ChangeNotifier {
     if (service == null) return;
     try {
       await service.writeState({
-        'schemaVersion': 4,
+        'schemaVersion': 5,
         'onboardingComplete': onboardingComplete,
         'profileReady': profileReady,
         'companyProfile': companyProfile.toJson(),
