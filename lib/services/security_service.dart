@@ -29,7 +29,8 @@ class LocalSecurityService {
       if (!available) {
         return const SecurityAuthResult(
           success: false,
-          message: 'Na uređaju nije dostupna biometrija, PIN, uzorak ili sigurnosna šifra.',
+          message:
+              'Na uređaju nije dostupna biometrija, PIN, uzorak ili sigurnosna šifra.',
         );
       }
 

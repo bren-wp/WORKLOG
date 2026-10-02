@@ -416,8 +416,9 @@ String formatTimeRange(DateTime start, DateTime? end) {
 }
 
 DateTime? parseCroatianScheduleStart(String dateLabel, String timeLabel) {
-  final date = RegExp(r'^(\d{1,2})\.\s+([^\s]+)\s+(\d{4})\.?$')
-      .firstMatch(dateLabel.trim());
+  final date = RegExp(
+    r'^(\d{1,2})\.\s+([^\s]+)\s+(\d{4})\.?$',
+  ).firstMatch(dateLabel.trim());
   final time = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(timeLabel);
   if (date == null || time == null) return null;
 
