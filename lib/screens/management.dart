@@ -176,6 +176,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
   late final TextEditingController email;
   late final TextEditingController address;
   late final TextEditingController oib;
+  late String employeeRange;
 
   @override
   void initState() {
@@ -187,6 +188,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     email = TextEditingController(text: profile.email);
     address = TextEditingController(text: profile.address);
     oib = TextEditingController(text: profile.oib);
+    employeeRange = profile.employeeRange;
   }
 
   @override
@@ -210,6 +212,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
         email: email.text.trim(),
         address: address.text.trim(),
         oib: oib.text.trim(),
+        employeeRange: employeeRange,
       ),
     );
     ScaffoldMessenger.of(context).showSnackBar(
@@ -273,6 +276,20 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
               decoration: const InputDecoration(labelText: 'Adresa'),
               minLines: 2,
               maxLines: 3,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: employeeRange,
+              decoration: const InputDecoration(labelText: 'Broj zaposlenih'),
+              items: const [
+                DropdownMenuItem(value: '1 – 5', child: Text('1 – 5')),
+                DropdownMenuItem(value: '6 – 20', child: Text('6 – 20')),
+                DropdownMenuItem(value: '21 – 50', child: Text('21 – 50')),
+                DropdownMenuItem(value: '51+', child: Text('51+')),
+              ],
+              onChanged: (value) => setState(
+                () => employeeRange = value ?? employeeRange,
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
