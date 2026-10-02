@@ -4,6 +4,7 @@ import '../brand.dart';
 import '../models.dart';
 import '../worklog_theme.dart';
 import 'job_flow.dart';
+import 'management.dart';
 import 'support.dart';
 
 class HomeShell extends StatelessWidget {
@@ -310,32 +311,119 @@ class CalendarScreen extends StatelessWidget {
   }
 }
 
-class ClientsScreen extends StatelessWidget {
+class ClientsScreen extends StatefulWidget {
   const ClientsScreen({super.key, required this.state});
+
   final AppState state;
 
   @override
+  State<ClientsScreen> createState() => _ClientsScreenState();
+}
+
+class _ClientsScreenState extends State<ClientsScreen> {
+  final search = TextEditingController();
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final query = search.text.trim().toLowerCase();
+    final clients = widget.state.clients.where((client) {
+      if (query.isEmpty) return true;
+      return client.name.toLowerCase().contains(query) ||
+          client.email.toLowerCase().contains(query) ||
+          client.phone.toLowerCase().contains(query) ||
+          client.address.toLowerCase().contains(query);
+    }).toList();
+
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
         Row(
           children: [
-            const Text("Klijenti", style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
+            const Text(
+              "Klijenti",
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
+            ),
             const Spacer(),
-            IconButton(onPressed: () {}, icon: const Icon(Icons.person_add_alt_1_rounded, color: WorklogColors.primary)),
+            IconButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ClientEditorScreen(state: widget.state),
+                ),
+              ),
+              icon: const Icon(
+                Icons.person_add_alt_1_rounded,
+                color: WorklogColors.primary,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
-        const TextField(decoration: InputDecoration(hintText: "Pretraži klijente...", prefixIcon: Icon(Icons.search_rounded))),
+        TextField(
+          controller: search,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: "Pretraži klijente...",
+            prefixIcon: const Icon(Icons.search_rounded),
+            suffixIcon: query.isEmpty
+                ? null
+                : IconButton(
+                    onPressed: () {
+                      search.clear();
+                      setState(() {});
+                    },
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+          ),
+        ),
         const SizedBox(height: 14),
-        ...state.clients.map(
+        if (clients.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(
+              child: Text(
+                "Nema klijenata za zadanu pretragu.",
+                style: TextStyle(color: WorklogColors.muted),
+              ),
+            ),
+          ),
+        ...clients.map(
           (client) => Card(
             child: ListTile(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClientDetailScreen(state: state, client: client))),
-              leading: CircleAvatar(child: Text(client.name.split(" ").map((part) => part[0]).take(2).join())),
-              title: Text(client.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: Text(client.type),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ClientDetailScreen(
+                    state: widget.state,
+                    client: client,
+                  ),
+                ),
+              ),
+              leading: CircleAvatar(
+                child: Text(
+                  client.name
+                      .split(" ")
+                      .where((part) => part.isNotEmpty)
+                      .map((part) => part[0])
+                      .take(2)
+                      .join(),
+                ),
+              ),
+              title: Text(
+                client.name,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                client.email.isEmpty
+                    ? client.type
+                    : "${client.type} • ${client.email}",
+              ),
               trailing: const Icon(Icons.chevron_right_rounded),
             ),
           ),
@@ -347,6 +435,7 @@ class ClientsScreen extends StatelessWidget {
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key, required this.state});
+
   final AppState state;
 
   @override
@@ -354,20 +443,67 @@ class MoreScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
-        const Text("Više", style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
+        const Text(
+          "Više",
+          style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 16),
-        _MoreTile(icon: Icons.picture_as_pdf_rounded, label: "Izvještaji", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReportsScreen(state: state)))),
-        _MoreTile(icon: Icons.notifications_none_rounded, label: "Obavijesti", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen(state: state)))),
-        _MoreTile(icon: Icons.business_rounded, label: "Profil tvrtke", onTap: () => _simple(context, "Profil tvrtke")),
-        _MoreTile(icon: Icons.group_work_outlined, label: "Terenski tim", onTap: () => _simple(context, "Terenski tim")),
-        _MoreTile(icon: Icons.settings_outlined, label: "Postavke", onTap: () => _simple(context, "Postavke")),
-        _MoreTile(icon: Icons.shield_outlined, label: "Privatnost i sigurnost", onTap: () => _simple(context, "Privatnost i sigurnost")),
+        _MoreTile(
+          icon: Icons.picture_as_pdf_rounded,
+          label: "Izvještaji",
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ReportsScreen(state: state)),
+          ),
+        ),
+        _MoreTile(
+          icon: Icons.notifications_none_rounded,
+          label: "Obavijesti",
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => NotificationsScreen(state: state),
+            ),
+          ),
+        ),
+        _MoreTile(
+          icon: Icons.business_rounded,
+          label: "Profil tvrtke",
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CompanyProfileScreen(state: state),
+            ),
+          ),
+        ),
+        _MoreTile(
+          icon: Icons.group_work_outlined,
+          label: "Terenski tim",
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => TeamScreen(state: state)),
+          ),
+        ),
+        _MoreTile(
+          icon: Icons.settings_outlined,
+          label: "Postavke",
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SettingsScreen(state: state)),
+          ),
+        ),
+        _MoreTile(
+          icon: Icons.shield_outlined,
+          label: "Privatnost i sigurnost",
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PrivacySecurityScreen(state: state),
+            ),
+          ),
+        ),
       ],
     );
-  }
-
-  static void _simple(BuildContext context, String title) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => SimplePage(title: title)));
   }
 }
 

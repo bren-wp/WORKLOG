@@ -3,7 +3,7 @@ import 'package:worklog/models.dart';
 
 void main() {
   test('WorkJob JSON zapis zadržava produkcijske podatke', () {
-    const client = Client(
+    final client = Client(
       name: 'Ivica Horvat',
       type: 'Privatna osoba',
       phone: '091 123 4567',
@@ -43,5 +43,22 @@ void main() {
     expect(restored.signaturePath, '/tmp/potpis.png');
     expect(restored.reportPath, '/tmp/zapisnik.pdf');
     expect(restored.reportSent, isTrue);
+    expect(restored.client.id, client.id);
+  });
+
+  test('AppPreferences JSON zapis zadržava sigurnosne postavke', () {
+    const preferences = AppPreferences(
+      notificationsEnabled: false,
+      autoSaveEnabled: true,
+      biometricLockEnabled: true,
+      compactCards: true,
+    );
+
+    final restored = AppPreferences.fromJson(preferences.toJson());
+
+    expect(restored.notificationsEnabled, isFalse);
+    expect(restored.autoSaveEnabled, isTrue);
+    expect(restored.biometricLockEnabled, isTrue);
+    expect(restored.compactCards, isTrue);
   });
 }

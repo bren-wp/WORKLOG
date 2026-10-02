@@ -2,12 +2,16 @@ name: WORKLOG CI
 
 on:
   push:
-    branches: [main, "develop/**"]
+    branches: [main]
   pull_request:
     branches: [main]
 
 permissions:
   contents: read
+
+concurrency:
+  group: worklog-ci-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   quality:
