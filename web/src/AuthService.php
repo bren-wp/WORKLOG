@@ -1,6 +1,14 @@
 <?php
 declare(strict_types=1);
 
+final class AuthHttpException extends RuntimeException
+{
+    public function __construct(string $message, public readonly int $status)
+    {
+        parent::__construct($message);
+    }
+}
+
 final class AuthService
 {
     public function __construct(
@@ -29,7 +37,7 @@ final class AuthService
         $query = $this->db->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
         $query->execute([$email]);
         if ($query->fetch()) {
-            throw new DomainException('Račun s tom e-mail adresom već postoji.');
+            throw new AuthHttpException('Račun s tom e-mail adresom već postoji.', 409);
         }
 
         $id = self::uuid();
@@ -62,7 +70,7 @@ final class AuthService
         $user = $query->fetch();
 
         if (!$user || !password_verify($password, (string) $user['password_hash'])) {
-            throw new DomainException('E-mail ili lozinka nisu ispravni.');
+            throw new AuthHttpException('E-mail ili lozinka nisu ispravni.', 401);
         }
 
         if (password_needs_rehash((string) $user['password_hash'], $this->passwordAlgorithm())) {
@@ -78,7 +86,7 @@ final class AuthService
     public function refresh(string $refreshToken): array
     {
         if ($refreshToken === '') {
-            throw new DomainException('Nedostaje refresh token.');
+            throw new AuthHttpException('Nedostaje refresh token.', 401);
         }
 
         $hash = hash('sha256', $refreshToken);
@@ -93,7 +101,7 @@ final class AuthService
         $row = $query->fetch();
 
         if (!$row || strtotime((string) $row['refresh_expires_at']) <= time()) {
-            throw new DomainException('Sesija je istekla. Prijavite se ponovno.');
+            throw new AuthHttpException('Sesija je istekla. Prijavite se ponovno.', 401);
         }
 
         $this->db->beginTransaction();
@@ -128,7 +136,7 @@ final class AuthService
         $row = $query->fetch();
 
         if (!$row || strtotime((string) $row['access_expires_at']) <= time()) {
-            throw new DomainException('Sesija nije valjana.');
+            throw new AuthHttpException('Sesija nije valjana.', 401);
         }
 
         $touch = $this->db->prepare('UPDATE auth_sessions SET last_seen_at = ? WHERE id = ?');
@@ -243,7 +251,7 @@ final class AuthService
         }
 
         if ((int) $row['attempts'] >= $maxAttempts) {
-            throw new RuntimeException('Previše pokušaja. Pokušajte ponovno kasnije.');
+            throw new AuthHttpException('Previše pokušaja. Pokušajte ponovno kasnije.', 429);
         }
 
         $update = $this->db->prepare(
